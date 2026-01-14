@@ -323,6 +323,7 @@ object CategoryLockCrypto {
             val decryptedPin = decryptPin(encryptedMasterPin)
             decryptedPin == inputPin
         } catch (e: Exception) {
+            logcat(LogPriority.WARN, e) { "Failed to verify master PIN" }
             false
         }
     }
