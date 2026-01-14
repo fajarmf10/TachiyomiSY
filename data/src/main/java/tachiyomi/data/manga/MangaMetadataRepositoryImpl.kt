@@ -39,6 +39,20 @@ class MangaMetadataRepositoryImpl(
         return handler.subscribeToList { search_titlesQueries.selectByMangaId(id, ::searchTitleMapper) }
     }
 
+    override suspend fun getTagsByIds(ids: List<Long>): Map<Long, List<SearchTag>> {
+        if (ids.isEmpty()) return emptyMap()
+        return handler.awaitList<SearchTag> {
+            search_tagsQueries.selectByMangaIds(ids, ::searchTagMapper)
+        }.groupBy { it.mangaId }
+    }
+
+    override suspend fun getTitlesByIds(ids: List<Long>): Map<Long, List<SearchTitle>> {
+        if (ids.isEmpty()) return emptyMap()
+        return handler.awaitList<SearchTitle> {
+            search_titlesQueries.selectByMangaIds(ids, ::searchTitleMapper)
+        }.groupBy { it.mangaId }
+    }
+
     override suspend fun insertFlatMetadata(flatMetadata: FlatMetadata) {
         require(flatMetadata.metadata.mangaId != -1L)
 

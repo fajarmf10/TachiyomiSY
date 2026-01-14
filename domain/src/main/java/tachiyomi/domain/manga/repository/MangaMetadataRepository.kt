@@ -21,6 +21,10 @@ interface MangaMetadataRepository {
 
     fun subscribeTitlesById(id: Long): Flow<List<SearchTitle>>
 
+    suspend fun getTagsByIds(ids: List<Long>): Map<Long, List<SearchTag>>
+
+    suspend fun getTitlesByIds(ids: List<Long>): Map<Long, List<SearchTitle>>
+
     suspend fun insertFlatMetadata(flatMetadata: FlatMetadata)
 
     suspend fun insertMetadata(metadata: RaisedSearchMetadata) = insertFlatMetadata(metadata.flatten())

@@ -98,7 +98,9 @@ import tachiyomi.domain.manga.interactor.GetIdsOfFavoriteMangaWithMetadata
 import tachiyomi.domain.manga.interactor.GetLibraryManga
 import tachiyomi.domain.manga.interactor.GetMergedMangaById
 import tachiyomi.domain.manga.interactor.GetSearchTags
+import tachiyomi.domain.manga.interactor.GetSearchTagsBatch
 import tachiyomi.domain.manga.interactor.GetSearchTitles
+import tachiyomi.domain.manga.interactor.GetSearchTitlesBatch
 import tachiyomi.domain.manga.interactor.SetCustomMangaInfo
 import tachiyomi.domain.manga.model.CustomMangaInfo
 import tachiyomi.domain.manga.model.Manga
@@ -140,6 +142,8 @@ class LibraryScreenModel(
     private val getIdsOfFavoriteMangaWithMetadata: GetIdsOfFavoriteMangaWithMetadata = Injekt.get(),
     private val getSearchTags: GetSearchTags = Injekt.get(),
     private val getSearchTitles: GetSearchTitles = Injekt.get(),
+    private val getSearchTagsBatch: GetSearchTagsBatch = Injekt.get(),
+    private val getSearchTitlesBatch: GetSearchTitlesBatch = Injekt.get(),
     private val searchEngine: SearchEngine = Injekt.get(),
     private val setCustomMangaInfo: SetCustomMangaInfo = Injekt.get(),
     private val getMergedChaptersByMangaId: GetMergedChaptersByMangaId = Injekt.get(),
@@ -153,6 +157,19 @@ class LibraryScreenModel(
     val recommendationSearch = RecommendationSearchHelper(preferences.context)
 
     private var recommendationSearchJob: Job? = null
+
+    // Cache for metadata to avoid re-querying during filtering
+    private var metadataCache: MetadataCache? = null
+
+    private data class MetadataCache(
+        val tags: Map<Long, List<SearchTag>>,
+        val titles: Map<Long, List<SearchTitle>>,
+        val mangaIds: Set<Long>,
+    )
+
+    private fun invalidateMetadataCache() {
+        metadataCache = null
+    }
     // SY <--
 
     init {
@@ -206,6 +223,8 @@ class LibraryScreenModel(
             }
                 .distinctUntilChanged()
                 .collectLatest { libraryData ->
+                    // Invalidate cache when library data changes
+                    invalidateMetadataCache()
                     mutableState.update { state ->
                         state.copy(libraryData = libraryData)
                     }
@@ -967,7 +986,6 @@ class LibraryScreenModel(
         loggedInTrackServices: Map<Long, TriState>,
     ): List<LibraryItem> {
         return if (unfiltered.isNotEmpty() && !query.isNullOrBlank()) {
-            // Prepare filter object
             val parsedQuery = searchEngine.parseQuery(query)
             val mangaWithMetaIds = getIdsOfFavoriteMangaWithMetadata.await()
             val tracks = if (loggedInTrackServices.isNotEmpty()) {
@@ -979,6 +997,37 @@ class LibraryScreenModel(
                 .distinctBy { it.libraryManga.manga.source }
                 .fastMapNotNull { sourceManager.get(it.libraryManga.manga.source) }
                 .associateBy { it.id }
+
+            // OPTIMIZATION: Batch-load metadata for all manga with metadata
+            val metadataSourceMangaIds = unfiltered
+                .filter { isMetadataSource(it.libraryManga.manga.source) }
+                .map { it.libraryManga.manga.id }
+                .filter { mangaWithMetaIds.binarySearch(it) >= 0 }
+
+            // Check if cache is valid, otherwise rebuild it
+            val currentCache = metadataCache
+            val cache = if (currentCache != null &&
+                           currentCache.mangaIds == metadataSourceMangaIds.toSet()) {
+                currentCache
+            } else {
+                // Rebuild cache with batch queries
+                val tags = if (metadataSourceMangaIds.isNotEmpty()) {
+                    getSearchTagsBatch.await(metadataSourceMangaIds)
+                } else {
+                    emptyMap()
+                }
+                val titles = if (metadataSourceMangaIds.isNotEmpty()) {
+                    getSearchTitlesBatch.await(metadataSourceMangaIds)
+                } else {
+                    emptyMap()
+                }
+                MetadataCache(
+                    tags = tags,
+                    titles = titles,
+                    mangaIds = metadataSourceMangaIds.toSet(),
+                ).also { metadataCache = it }
+            }
+
             unfiltered.asFlow().cancellable().filter { item ->
                 val mangaId = item.libraryManga.manga.id
                 if (query.startsWith("id:", true)) {
@@ -988,7 +1037,6 @@ class LibraryScreenModel(
                 val sourceId = item.libraryManga.manga.source
                 if (isMetadataSource(sourceId)) {
                     if (mangaWithMetaIds.binarySearch(mangaId) < 0) {
-                        // No meta? Filter using title
                         filterManga(
                             queries = parsedQuery,
                             libraryManga = item.libraryManga,
@@ -997,8 +1045,9 @@ class LibraryScreenModel(
                             loggedInTrackServices = loggedInTrackServices,
                         )
                     } else {
-                        val tags = getSearchTags.await(mangaId)
-                        val titles = getSearchTitles.await(mangaId)
+                        // Use cached metadata instead of individual queries
+                        val tags = cache.tags[mangaId].orEmpty()
+                        val titles = cache.titles[mangaId].orEmpty()
                         filterManga(
                             queries = parsedQuery,
                             libraryManga = item.libraryManga,

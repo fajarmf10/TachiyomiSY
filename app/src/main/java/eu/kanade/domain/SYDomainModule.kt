@@ -47,7 +47,9 @@ import tachiyomi.domain.manga.interactor.GetMergedReferencesById
 import tachiyomi.domain.manga.interactor.GetReadMangaNotInLibraryView
 import tachiyomi.domain.manga.interactor.GetSearchMetadata
 import tachiyomi.domain.manga.interactor.GetSearchTags
+import tachiyomi.domain.manga.interactor.GetSearchTagsBatch
 import tachiyomi.domain.manga.interactor.GetSearchTitles
+import tachiyomi.domain.manga.interactor.GetSearchTitlesBatch
 import tachiyomi.domain.manga.interactor.InsertFavoriteEntries
 import tachiyomi.domain.manga.interactor.InsertFavoriteEntryAlternative
 import tachiyomi.domain.manga.interactor.InsertFlatMetadata
@@ -113,6 +115,8 @@ class SYDomainModule : InjektModule {
         addFactory { GetSearchMetadata(get()) }
         addFactory { GetSearchTags(get()) }
         addFactory { GetSearchTitles(get()) }
+        addFactory { GetSearchTagsBatch(get()) }
+        addFactory { GetSearchTitlesBatch(get()) }
         addFactory { GetIdsOfFavoriteMangaWithMetadata(get()) }
 
         addSingletonFactory<MangaMergeRepository> { MangaMergeRepositoryImpl(get()) }
