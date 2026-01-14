@@ -353,7 +353,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                     preference = flareSolverrUrlPref,
                     title = stringResource(MR.strings.pref_flare_solverr_url),
                     enabled = enableFlareSolverr,
-                    subtitle = stringResource(MR.strings.pref_flare_solverr_url_summary) + " (e.g., http://localhost:8191). Note: /v1 will be appended automatically.",
+                    subtitle = stringResource(MR.strings.pref_flare_solverr_url_summary),
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = networkPreferences.showFlareSolverrNotifications(),
