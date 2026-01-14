@@ -70,7 +70,7 @@ object SettingsCategoryLockScreen : SearchableSettings {
                                     } catch (e: Exception) {
                                         context.toast(
                                             e.message
-                                                ?: context.stringResource(
+                                                ?: stringResource(
                                                     SYMR.strings.category_lock_error_setting_master_pin,
                                                 ),
                                         )
@@ -127,7 +127,7 @@ object SettingsCategoryLockScreen : SearchableSettings {
                                         } catch (e: Exception) {
                                             context.toast(
                                                 e.message
-                                                    ?: context.stringResource(
+                                                    ?: stringResource(
                                                         SYMR.strings.category_lock_error_setting_pin,
                                                     ),
                                             )
