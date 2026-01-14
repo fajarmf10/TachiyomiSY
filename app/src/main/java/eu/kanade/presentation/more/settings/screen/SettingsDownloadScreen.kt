@@ -18,10 +18,13 @@ import eu.kanade.presentation.more.settings.widget.TriStateListDialog
 import eu.kanade.tachiyomi.data.download.AutoDownloadPollingWorker
 import eu.kanade.tachiyomi.data.download.DownloadJob
 import eu.kanade.tachiyomi.data.download.TempFolderCleanupWorker
+import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.launch
+import tachiyomi.core.common.i18n.pluralStringResource as pluralStringResourceContext
+import tachiyomi.core.common.i18n.stringResource as stringResourceContext
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.model.Category
@@ -30,7 +33,6 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
-import tachiyomi.util.system.toast
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -326,9 +328,9 @@ object SettingsDownloadScreen : SearchableSettings {
                                 TempFolderCleanupWorker.cleanupOrphanedTempFolders(maxAgeMillis = 0)
                             }
                             val message = if (cleaned == 0) {
-                                context.stringResource(MR.strings.cleanup_temp_folders_none)
+                                context.stringResourceContext(MR.strings.cleanup_temp_folders_none)
                             } else {
-                                context.pluralStringResource(
+                                context.pluralStringResourceContext(
                                     MR.plurals.cleanup_temp_folders_done,
                                     cleaned,
                                     cleaned,
