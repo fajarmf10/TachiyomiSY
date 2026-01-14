@@ -112,10 +112,13 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
         /**
          * Setup periodic download worker with configurable interval.
          * Replaces the old one-time worker approach.
+         *
+         * @param context Android context
+         * @param intervalMinutes Override interval in minutes. If null, reads from preferences.
          */
-        fun setupPeriodicWork(context: Context) {
+        fun setupPeriodicWork(context: Context, intervalMinutes: Int? = null) {
             val preferences = Injekt.get<DownloadPreferences>()
-            val interval = preferences.downloadWorkerInterval().get()
+            val interval = intervalMinutes ?: preferences.downloadWorkerInterval().get()
 
             if (interval == 0) {
                 // User disabled periodic downloads

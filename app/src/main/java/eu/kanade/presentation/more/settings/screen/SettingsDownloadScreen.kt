@@ -245,8 +245,8 @@ object SettingsDownloadScreen : SearchableSettings {
                     ),
                     title = stringResource(MR.strings.pref_download_worker_interval),
                     subtitle = stringResource(MR.strings.pref_download_worker_interval_summary),
-                    onValueChanged = {
-                        DownloadJob.setupPeriodicWork(context)
+                    onValueChanged = { newValue ->
+                        DownloadJob.setupPeriodicWork(context, newValue)
                         true
                     },
                 ),
