@@ -597,7 +597,11 @@ object SettingsAdvancedScreen : SearchableSettings {
         val options = remember { context.resources.getStringArray(R.array.clean_up_downloads).toList() }
         val selection = remember {
             // Option 0 is always required and shown as checked via the UI logic.
-            mutableStateListOf(options[1], options[2])
+            // Expected array structure: [0] = mandatory option, [1] = remove read, [2] = remove non-favorite
+            mutableStateListOf<String>().apply {
+                options.getOrNull(1)?.let { add(it) }
+                options.getOrNull(2)?.let { add(it) }
+            }
         }
         AlertDialog(
             onDismissRequest = onDismissRequest,
@@ -626,8 +630,8 @@ object SettingsAdvancedScreen : SearchableSettings {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val removeRead = options[1] in selection
-                        val removeNonFavorite = options[2] in selection
+                        val removeRead = options.getOrNull(1)?.let { it in selection } ?: false
+                        val removeNonFavorite = options.getOrNull(2)?.let { it in selection } ?: false
                         onCleanupDownloads(removeRead, removeNonFavorite)
                     },
                 ) {
@@ -934,8 +938,8 @@ object SettingsAdvancedScreen : SearchableSettings {
                         }
                         withContext(Dispatchers.Main) {
                             val errorMsg = when (response.code) {
-                                405 -> context.getString(SYMR.strings.flare_solver_http_405)
-                                else -> context.getString(SYMR.strings.flare_solver_http_error, response.code)
+                                405 -> context.stringResource(SYMR.strings.flare_solver_http_405)
+                                else -> context.stringResource(SYMR.strings.flare_solver_http_error, response.code)
                             }
                             context.toast(errorMsg)
                         }
@@ -962,7 +966,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                             "Solution failed with status: ${flareSolverResponse.solution.status}, message: ${flareSolverResponse.message}"
                         }
                         withContext(Dispatchers.Main) {
-                            context.toast(context.getString(SYMR.strings.flare_solver_failed, flareSolverResponse.message))
+                            context.toast(context.stringResource(SYMR.strings.flare_solver_failed, flareSolverResponse.message))
                         }
                     }
                 }
@@ -974,14 +978,14 @@ object SettingsAdvancedScreen : SearchableSettings {
             withContext(Dispatchers.Main) {
                 val errorMsg = when {
                     e is java.net.UnknownHostException -> {
-                        context.getString(SYMR.strings.flare_solver_dns_error)
+                        context.stringResource(SYMR.strings.flare_solver_dns_error)
                     }
 
                     e.message?.contains("timeout", ignoreCase = true) == true -> {
-                        context.getString(SYMR.strings.flare_solver_timeout_error)
+                        context.stringResource(SYMR.strings.flare_solver_timeout_error)
                     }
 
-                    else -> context.getString(SYMR.strings.flare_solver_unknown_error, e.message ?: "Unknown error")
+                    else -> context.stringResource(SYMR.strings.flare_solver_unknown_error, e.message ?: "Unknown error")
                 }
                 context.toast(errorMsg)
             }
