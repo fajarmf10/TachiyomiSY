@@ -18,10 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import eu.kanade.presentation.category.visualName
-import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.domain.category.model.Category
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.material.TabText
+import tachiyomi.presentation.core.i18n.stringResource
 
 /**
  * Renders a horizontal, scrollable tab row for library categories with optional lock indicators and per-category badge counts.
