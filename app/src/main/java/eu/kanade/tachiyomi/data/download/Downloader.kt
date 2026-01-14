@@ -1,6 +1,8 @@
 package eu.kanade.tachiyomi.data.download
 
 import android.content.Context
+import android.system.ErrnoException
+import android.system.OsConstants
 import com.hippo.unifile.UniFile
 import eu.kanade.domain.chapter.model.toSChapter
 import eu.kanade.domain.manga.model.getComicInfo
@@ -494,7 +496,16 @@ class Downloader(
     }
 
     private fun classifyError(error: Throwable): DownloadErrorType {
-        // Check for disk space errors first (by message)
+        // Check for ErrnoException with ENOSPC (no space left on device)
+        var cause: Throwable? = error
+        while (cause != null) {
+            if (cause is ErrnoException && cause.errno == OsConstants.ENOSPC) {
+                return DownloadErrorType.DISK_FULL
+            }
+            cause = cause.cause
+        }
+
+        // Fallback: check for disk space errors by message (for compatibility)
         val message = error.message?.lowercase() ?: ""
         if (message.contains("space") ||
             message.contains("disk") ||
