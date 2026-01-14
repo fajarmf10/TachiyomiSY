@@ -614,6 +614,11 @@ class ReaderViewModel @JvmOverloads constructor(
         eventChannel.trySend(Event.PageChanged)
     }
 
+    /**
+     * Enqueues downloads for up to `downloadAheadAmount` upcoming chapters for the currently loaded manga.
+     *
+     * If the "skip duplicates" preference is enabled, duplicate chapters relative to the immediate next chapter are removed from the selection. The operation is a no-op when `downloadAheadAmount` is zero or when no manga or next chapter is available.
+     */
     private fun downloadNextChapters() {
         if (downloadAheadAmount == 0) return
         val manga = manga ?: return

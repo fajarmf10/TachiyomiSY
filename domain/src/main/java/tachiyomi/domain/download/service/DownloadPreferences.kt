@@ -41,20 +41,46 @@ class DownloadPreferences(
 
     fun parallelPageLimit() = preferenceStore.getInt("download_parallel_page_limit", 5)
 
-    fun includeChapterUrlHash() = preferenceStore.getBoolean("download_include_chapter_url_hash", true)
+    /**
+ * Indicates whether the chapter URL hash should be included in downloaded chapter filenames.
+ *
+ * @return `true` if the chapter URL hash is included in downloaded chapter filenames, `false` otherwise.
+ */
+fun includeChapterUrlHash() = preferenceStore.getBoolean("download_include_chapter_url_hash", true)
 
-    // Download worker interval (minutes) - 0 = disabled, 15/30/60/180/360 for periodic
+    /**
+ * Gets the configured interval, in minutes, for the download worker schedule.
+ *
+ * @return The interval in minutes; `0` disables the worker. Allowed periodic values are `15`, `30`, `60`, `180`, and `360`. Default is `15`.
+ */
     fun downloadWorkerInterval() = preferenceStore.getInt("download_worker_interval", 15)
 
-    // Auto-download from reading history
+    /**
+ * Indicates whether automatic downloading of chapters from the user's reading history is enabled.
+ *
+ * @return `true` if enabled, `false` otherwise.
+ */
     fun autoDownloadFromReadingHistory() = preferenceStore.getBoolean("auto_download_from_reading_history", false)
 
-    fun autoDownloadReadingHistoryDays() = preferenceStore.getInt("auto_download_reading_history_days", 7)
+    /**
+ * Number of days to consider from reading history when auto-downloading chapters.
+ *
+ * @return The number of days in the reading-history window used for auto-downloads (default 7).
+ */
+fun autoDownloadReadingHistoryDays() = preferenceStore.getInt("auto_download_reading_history_days", 7)
 
-    // Retry configuration
+    /**
+ * Maximum number of retry attempts for automatic downloads.
+ *
+ * @return The configured maximum retry count for auto-downloads; defaults to 5.
+ */
     fun autoDownloadMaxRetries() = preferenceStore.getInt("auto_download_max_retries", 5)
 
-    // Cleanup configuration
+    /**
+ * Determines whether orphaned download folders are removed automatically when the app starts.
+ *
+ * @return `true` if orphaned download folders should be cleaned up on startup, `false` otherwise.
+ */
     fun cleanupOrphanedFoldersOnStartup() = preferenceStore.getBoolean("cleanup_orphaned_folders_on_startup", true)
 
     companion object {

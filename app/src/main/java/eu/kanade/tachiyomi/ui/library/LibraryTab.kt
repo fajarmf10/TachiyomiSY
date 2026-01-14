@@ -95,6 +95,15 @@ data object LibraryTab : Tab {
         requestOpenSettingsSheet()
     }
 
+    /**
+     * Renders the Library tab UI, composing the toolbar, library content, bottom action menu, dialog flows,
+     * snackbars, and lifecycle effects tied to library and settings screen models.
+     *
+     * Binds to LibraryScreenModel and LibrarySettingsScreenModel for state and actions; exposes handlers for
+     * refreshing, selection, navigation (manga, reader, migration, global search), category locking/unlocking,
+     * favorites sync, and recommendation search. Also manages back handling, bottom navigation visibility, and
+     * transient progress dialogs.
+     */
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow

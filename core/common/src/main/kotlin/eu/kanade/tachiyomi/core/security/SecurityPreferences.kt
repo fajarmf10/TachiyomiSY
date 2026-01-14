@@ -33,15 +33,31 @@ class SecurityPreferences(
         false,
     )
 
-    fun encryptionType() = this.preferenceStore.getEnum("encryption_type", EncryptionType.AES_256)
+    /**
+ * Retrieves the configured encryption type used for stored data.
+ *
+ * @return The selected [EncryptionType]; defaults to `EncryptionType.AES_256` if not set.
+ */
+fun encryptionType() = this.preferenceStore.getEnum("encryption_type", EncryptionType.AES_256)
 
-    fun cbzPassword() = this.preferenceStore.getString(Preference.appStateKey("cbz_password"), "")
+    /**
+ * Password used for CBZ archives.
+ *
+ * @return The CBZ archive password, or an empty string if not set.
+ */
+fun cbzPassword() = this.preferenceStore.getString(Preference.appStateKey("cbz_password"), "")
 
     // Category lock preferences
     // SECURITY NOTE: Category PINs are stored in SharedPreferences using the privateKey prefix
     // to exclude them from backups. The PIN values themselves are encrypted using Android KeyStore
     // (AES-256) via CategoryLockCrypto before storage. For enhanced security, consider migrating
-    // to EncryptedSharedPreferences in the future to encrypt both keys and values at rest.
+    /**
+     * Provides the stored set of category lock PINs.
+     *
+     * Values are persisted using a private preference key (excluded from backups) and are encrypted before storage.
+     *
+     * @return The set of category lock PINs. 
+     */
     fun categoryLockPins() = preferenceStore.getStringSet(
         Preference.privateKey("category_lock_pins"),
         emptySet(),
@@ -56,11 +72,19 @@ class SecurityPreferences(
      */
     fun categoryLockTimeout() = preferenceStore.getInt("category_lock_timeout", 0)
 
-    fun showLockedCategories() = preferenceStore.getBoolean("show_locked_categories", true)
+    /**
+ * Controls whether locked categories are displayed in category lists.
+ *
+ * @return `true` if locked categories are shown, `false` otherwise.
+ */
+fun showLockedCategories() = preferenceStore.getBoolean("show_locked_categories", true)
 
     /**
-     * Failed PIN attempt counter. Stored using appStateKey since it's internal app state.
-     * Format: "categoryId:attemptCount" pairs stored in a StringSet.
+     * Provides the stored failed-PIN attempt counts for category locks.
+     *
+     * Each entry is a string formatted as "categoryId:attemptCount".
+     *
+     * @return A set of entries in the format `"categoryId:attemptCount"`.
      */
     fun categoryLockFailedAttempts() = preferenceStore.getStringSet(
         Preference.appStateKey("category_lock_failed_attempts"),
@@ -68,8 +92,11 @@ class SecurityPreferences(
     )
 
     /**
-     * Master recovery PIN for category locks. Encrypted using Android KeyStore like category PINs.
-     * Stored using privateKey to exclude from backups. The PIN value is encrypted via CategoryLockCrypto.
+     * Master recovery PIN used for category locks, stored encrypted and excluded from backups.
+     *
+     * The value is encrypted via CategoryLockCrypto and protected with Android KeyStore; it is persisted under a private preference key to avoid inclusion in backups.
+     *
+     * @return The decrypted master PIN, or an empty string if not set.
      */
     fun categoryLockMasterPin() = preferenceStore.getString(
         Preference.privateKey("category_lock_master_pin"),

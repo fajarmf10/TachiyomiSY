@@ -23,10 +23,25 @@ import uy.kohesive.injekt.api.get
 // SY -->
 object SettingsCategoryLockScreen : SearchableSettings {
 
+    /**
+     * Provides the localized title for the category lock settings screen.
+     *
+     * @return The string resource ID for the category lock settings title.
+     */
     @ReadOnlyComposable
     @Composable
     override fun getTitleRes() = SYMR.strings.category_lock_settings
 
+    /**
+     * Builds the settings UI for category locking, providing controls to set, change, and remove a master PIN
+     * and to set or change per-category PINs.
+     *
+     * The returned preferences include a master PIN group (with options to set/change/remove the master PIN)
+     * and a category group (one entry per non-system category to set or change that category's PIN). PIN entry
+     * is performed via dialogs and user feedback is shown via toasts.
+     *
+     * @return A list of `Preference` groups representing the master PIN controls and per-category PIN settings.
+     */
     @Composable
     override fun getPreferences(): List<Preference> {
         val getCategories = remember { Injekt.get<GetCategories>() }

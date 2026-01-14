@@ -84,18 +84,21 @@ class DownloadStore(
     }
 
     /**
-     * Returns the preference's key for the given download.
+     * Compute the SharedPreferences key for a download using its chapter id.
      *
-     * @param download the download.
+     * @param download The download whose chapter id is used to form the key.
+     * @return The preference key as the download's chapter id string.
      */
     private fun getKey(download: Download): String {
         return download.chapter.id.toString()
     }
 
     /**
-     * Returns the list of downloads to restore. Migrates from SharedPreferences to database on first run.
-     * This is a suspend function and should be called from a coroutine context.
-     */
+     * Restores the active downloads queue, performing a one-time migration from SharedPreferences to the database if needed.
+     *
+     * If migration is attempted and any entry fails to migrate, the function returns an empty list so the migration can be retried on the next launch; on successful migration the old SharedPreferences entries are cleared and subsequent restores are loaded from the database-backed queue.
+     *
+     * @return A list of Download objects reconstructed from the persistent download queue. */
     suspend fun restore(): List<Download> {
         val migrationCompleted = preferences.getBoolean("queue_migrated_to_db", false)
 

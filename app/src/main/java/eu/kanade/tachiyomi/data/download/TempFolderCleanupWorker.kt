@@ -23,6 +23,13 @@ class TempFolderCleanupWorker(
 
     private val downloadPreferences: DownloadPreferences = Injekt.get()
 
+    /**
+     * Triggers orphaned temporary folder cleanup when the worker runs and the "cleanup on startup" preference is enabled.
+     *
+     * The worker always reports success to WorkManager regardless of whether cleanup was performed or any items were removed.
+     *
+     * @return `Result.success()` indicating the work completed. 
+     */
     override suspend fun doWork(): Result {
         if (!downloadPreferences.cleanupOrphanedFoldersOnStartup().get()) return Result.success()
         cleanupOrphanedTempFolders()
@@ -32,6 +39,13 @@ class TempFolderCleanupWorker(
     companion object {
         private const val TAG = "TempFolderCleanup"
 
+        /**
+         * Removes orphaned temporary download folders that are older than the specified age.
+         *
+         * @param maxAgeMillis Age threshold in milliseconds; folders last modified earlier than
+         *                     (current time - maxAgeMillis) are considered orphaned and eligible for deletion.
+         * @return The number of temporary folders deleted. 
+         */
         suspend fun cleanupOrphanedTempFolders(
             maxAgeMillis: Long = TimeUnit.HOURS.toMillis(1),
         ): Int {
@@ -41,6 +55,15 @@ class TempFolderCleanupWorker(
             return cleanupInDirectory(downloadsDir, cutoff)
         }
 
+        /**
+         * Schedules or cancels a periodic background task that cleans up orphaned temporary download folders.
+         *
+         * When enabled (either via the optional `enabled` parameter or the user's preference), enqueues a daily
+         * PeriodicWorkRequest (with a 2-hour flex window and exponential backoff) for TempFolderCleanupWorker;
+         * when not enabled, cancels any existing periodic work with the worker's unique tag.
+         *
+         * @param enabled If non-null, overrides the stored preference and controls whether the periodic cleanup is scheduled.
+         */
         fun setupPeriodicWork(context: Context, enabled: Boolean? = null) {
             val preferences = Injekt.get<DownloadPreferences>()
             val isEnabled = enabled ?: preferences.cleanupOrphanedFoldersOnStartup().get()
@@ -77,6 +100,13 @@ class TempFolderCleanupWorker(
             )
         }
 
+        /**
+         * Recursively deletes orphaned temporary download folders under the given directory that are older than the cutoff.
+         *
+         * @param dir The directory to scan for temporary folders.
+         * @param cutoffMillis Millisecond timestamp; folders with a positive `lastModified` earlier than this value will be removed.
+         * @return The number of temporary folders successfully deleted.
+         */
         private fun cleanupInDirectory(dir: UniFile, cutoffMillis: Long): Int {
             var cleaned = 0
             dir.listFiles().orEmpty().forEach { file ->

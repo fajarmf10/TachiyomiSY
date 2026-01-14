@@ -29,6 +29,14 @@ class AutoDownloadPollingWorker(
     private val getChaptersForAutoDownload: GetChaptersForAutoDownload = Injekt.get()
     private val downloadQueueRepository: DownloadQueueRepository = Injekt.get()
 
+    /**
+     * Enqueues chapters selected by the auto-download-from-reading-history feature and starts downloads.
+     *
+     * If the user preference for auto-download from reading history is disabled, the worker completes without action.
+     * When enabled, it obtains candidate chapters, adds them to the download queue with normal priority, and triggers the download manager.
+     *
+     * @return `Result.success()` when processing completes successfully, `Result.retry()` if an exception occurs.
+     */
     override suspend fun doWork(): Result {
         if (!downloadPreferences.autoDownloadFromReadingHistory().get()) return Result.success()
 
@@ -55,6 +63,14 @@ class AutoDownloadPollingWorker(
     companion object {
         private const val TAG = "AutoDownloadPolling"
 
+        /**
+         * Schedules or cancels the periodic WorkManager job that polls for chapters to auto-download based on user preferences.
+         *
+         * When `enabled` is null the current preference for auto-downloading from reading history is used; if disabled any existing periodic work with the worker's tag is cancelled.
+         * When enabled, enqueues a unique periodic work request configured to run every 6 hours with a 30-minute flex, an exponential backoff starting at 15 minutes, and constraints that require battery and storage not low and a network type that is UNMETERED if the "Wi-Fi only" preference is set or CONNECTED otherwise.
+         *
+         * @param enabled If non-null, overrides the stored preference to enable (`true`) or disable (`false`) the periodic work.
+         */
         fun setupPeriodicWork(context: Context, enabled: Boolean? = null) {
             val preferences = Injekt.get<DownloadPreferences>()
             val isEnabled = enabled ?: preferences.autoDownloadFromReadingHistory().get()

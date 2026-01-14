@@ -29,6 +29,12 @@ class CloudflareInterceptor(
 
     private val executor = ContextCompat.getMainExecutor(context)
 
+    /**
+     * Determines whether the given HTTP response should be intercepted to attempt a Cloudflare WebView bypass.
+     *
+     * @param response The HTTP response to evaluate for Cloudflare anti-bot indicators.
+     * @return `true` if FlareSolverr is disabled and the response status and Server header indicate a Cloudflare challenge, `false` otherwise.
+     */
     override fun shouldIntercept(response: Response): Boolean {
         // Check if FlareSolverr is enabled if it's enabled we don't need to bypass Cloudflare through WebView
         if (preferences.enableFlareSolverr().get()) {
@@ -61,6 +67,17 @@ class CloudflareInterceptor(
         }
     }
 
+    /**
+     * Attempts to resolve a Cloudflare anti-bot challenge by loading the original request URL in a WebView
+     * and waiting for the Cloudflare `cf_clearance` cookie to appear.
+     *
+     * This call blocks the current thread until the WebView either obtains a new clearance cookie or
+     * times out. If the WebView appears too outdated to solve the challenge, a user-facing toast may be shown.
+     *
+     * @param originalRequest The HTTP request whose URL will be loaded in the WebView.
+     * @param oldCookie The existing `cf_clearance` cookie for the request URL, if any, used to detect a new clearance.
+     * @throws CloudflareBypassException If the Cloudflare challenge could not be bypassed via the WebView.
+     */
     @SuppressLint("SetJavaScriptEnabled")
     private fun resolveWithWebView(originalRequest: Request, oldCookie: Cookie?) {
         // We need to lock this thread until the WebView finds the challenge solution url, because

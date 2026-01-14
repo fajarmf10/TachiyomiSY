@@ -105,6 +105,13 @@ import uy.kohesive.injekt.api.InjektRegistrar
 
 class DomainModule : InjektModule {
 
+    /**
+     * Registers domain-layer injectable bindings for repositories, services, and use-case interactors.
+     *
+     * Adds singleton and factory bindings mapping domain interfaces and interactors to their concrete implementations so they are available for injection.
+     *
+     * @receiver InjektRegistrar Registrar into which the domain bindings are registered.
+     */
     override fun InjektRegistrar.registerInjectables() {
         addSingletonFactory<CategoryRepository> { CategoryRepositoryImpl(get()) }
         addFactory { GetCategories(get()) }
