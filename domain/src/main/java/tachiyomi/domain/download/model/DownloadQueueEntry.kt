@@ -56,20 +56,3 @@ enum class DownloadErrorType {
             else -> 0.0
         }
 }
-
-/**
- * Extension function to map database row to DownloadQueueEntry
- */
-fun Download_queue.toDownloadQueueEntry(): DownloadQueueEntry {
-    return DownloadQueueEntry(
-        id = _id,
-        mangaId = manga_id,
-        chapterId = chapter_id,
-        priority = priority.toInt(),
-        addedAt = added_at,
-        retryCount = retry_count.toInt(),
-        lastAttemptAt = last_attempt_at,
-        lastErrorMessage = last_error_message,
-        status = DownloadQueueStatus.fromString(status),
-    )
-}
