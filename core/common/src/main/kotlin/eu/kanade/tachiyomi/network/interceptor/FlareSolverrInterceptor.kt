@@ -23,7 +23,9 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okio.IOException
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.i18n.MR
 import uy.kohesive.injekt.injectLazy
 import java.time.Instant
 import java.time.ZoneId
@@ -56,7 +58,7 @@ class FlareSolverrInterceptor(
             Handler(Looper.getMainLooper()).post {
                 Toast.makeText(
                     context,
-                    "FlareSolverr: Solving Cloudflare challenge...",
+                    context.stringResource(MR.strings.flare_solverr_solving_challenge),
                     Toast.LENGTH_SHORT,
                 ).show()
             }
@@ -79,7 +81,7 @@ class FlareSolverrInterceptor(
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(
                         context,
-                        "FlareSolverr: Challenge solved successfully",
+                        context.stringResource(MR.strings.flare_solverr_challenge_solved),
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
@@ -94,7 +96,7 @@ class FlareSolverrInterceptor(
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(
                         context,
-                        "FlareSolverr: Failed to solve challenge",
+                        context.stringResource(MR.strings.flare_solverr_challenge_failed),
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
