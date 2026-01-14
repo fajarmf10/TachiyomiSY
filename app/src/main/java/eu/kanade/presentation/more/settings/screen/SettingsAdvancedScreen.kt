@@ -55,7 +55,6 @@ import eu.kanade.tachiyomi.network.PREF_DOH_NJALLA
 import eu.kanade.tachiyomi.network.PREF_DOH_QUAD101
 import eu.kanade.tachiyomi.network.PREF_DOH_QUAD9
 import eu.kanade.tachiyomi.network.PREF_DOH_SHECAN
-import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.interceptor.FlareSolverrInterceptor
 import eu.kanade.tachiyomi.network.parseAs
 import eu.kanade.tachiyomi.source.AndroidSourceManager
