@@ -45,6 +45,10 @@ fun LibraryContent(
     getDisplayMode: (Int) -> PreferenceMutableState<LibraryDisplayMode>,
     getColumnsForOrientation: (Boolean) -> PreferenceMutableState<Int>,
     getItemsForCategory: (Category) -> List<LibraryItem>,
+    // SY -->
+    isCategoryLocked: (Category) -> Boolean = { false },
+    onRequestUnlock: (Category) -> Unit = {},
+    // SY <--
 ) {
     Column(
         modifier = Modifier.padding(
@@ -70,11 +74,23 @@ fun LibraryContent(
                 categories = categories,
                 pagerState = pagerState,
                 getItemCountForCategory = getItemCountForCategory,
-                onTabItemClick = {
-                    scope.launch {
-                        pagerState.animateScrollToPage(it)
+                onTabItemClick = { index ->
+                    val category = categories[index]
+                    // SY -->
+                    if (isCategoryLocked(category)) {
+                        onRequestUnlock(category)
+                    } else {
+                        // SY <--
+                        scope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    // SY -->
                     }
+                    // SY <--
                 },
+                // SY -->
+                isCategoryLocked = isCategoryLocked,
+                // SY <--
             )
         }
 
@@ -112,6 +128,10 @@ fun LibraryContent(
                 },
                 onLongClickManga = onToggleRangeSelection,
                 onClickContinueReading = onContinueReadingClicked,
+                // SY -->
+                isCategoryLocked = isCategoryLocked,
+                onUnlockRequest = onRequestUnlock,
+                // SY <--
             )
         }
 

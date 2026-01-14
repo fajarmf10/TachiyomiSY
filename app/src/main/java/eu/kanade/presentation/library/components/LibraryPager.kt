@@ -42,6 +42,10 @@ fun LibraryPager(
     onClickManga: (Category, LibraryManga) -> Unit,
     onLongClickManga: (Category, LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
+    // SY -->
+    isCategoryLocked: (Category) -> Boolean = { false },
+    onUnlockRequest: (Category) -> Unit = {},
+    // SY <--
 ) {
     HorizontalPager(
         modifier = Modifier.fillMaxSize(),
@@ -53,6 +57,17 @@ fun LibraryPager(
             return@HorizontalPager
         }
         val category = getCategoryForPage(page)
+
+        // SY -->
+        // Show locked overlay if category is locked
+        if (isCategoryLocked(category)) {
+            LockedCategoryOverlay(
+                onUnlockClick = { onUnlockRequest(category) },
+            )
+            return@HorizontalPager
+        }
+        // SY <--
+
         val items = getItemsForCategory(category)
 
         if (items.isEmpty()) {

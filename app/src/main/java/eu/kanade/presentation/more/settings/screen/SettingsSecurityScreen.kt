@@ -215,6 +215,21 @@ object SettingsSecurityScreen : SearchableSettings {
                         enabled = useAuth,
                     )
                 },
+                kotlin.run {
+                    val navigator = LocalNavigator.currentOrThrow
+                    val lockedCount = remember { eu.kanade.tachiyomi.util.storage.CategoryLockCrypto.getLockedCategoryIds().size }
+                    Preference.PreferenceItem.TextPreference(
+                        title = stringResource(SYMR.strings.category_lock_settings),
+                        subtitle = pluralStringResource(
+                            SYMR.plurals.num_locked_categories,
+                            lockedCount,
+                            lockedCount,
+                        ),
+                        onClick = {
+                            navigator.push(SettingsCategoryLockScreen)
+                        },
+                    )
+                },
                 // SY <--
                 Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.secure_screen_summary)),
             ),

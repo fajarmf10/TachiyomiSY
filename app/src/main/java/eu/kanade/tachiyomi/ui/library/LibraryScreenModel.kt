@@ -20,6 +20,7 @@ import eu.kanade.domain.manga.interactor.UpdateManga
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.sync.SyncPreferences
 import eu.kanade.presentation.components.SEARCH_DEBOUNCE_MILLIS
+import eu.kanade.tachiyomi.util.storage.CategoryLockCrypto
 import eu.kanade.presentation.library.components.LibraryToolbarTitle
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.tachiyomi.data.cache.CoverCache
@@ -1270,6 +1271,48 @@ class LibraryScreenModel(
         libraryPreferences.lastUsedCategory().set(newIndex)
     }
 
+    // SY -->
+    /**
+     * Check if a category can be accessed. If locked and not unlocked, shows unlock dialog.
+     * Returns true if access is granted, false if locked.
+     */
+    fun requestCategoryAccess(category: Category): Boolean {
+        if (CategoryLockCrypto.hasLock(category.id) && !CategoryLockManager.isUnlocked(category.id)) {
+            mutableState.update { it.copy(dialog = Dialog.UnlockCategory(category)) }
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Attempt to unlock a category with the provided PIN.
+     * Returns true if successful, false if PIN is incorrect.
+     */
+    fun unlockCategory(categoryId: Long, pin: String): Boolean {
+        return if (CategoryLockCrypto.verifyPin(categoryId, pin)) {
+            CategoryLockManager.unlock(categoryId)
+            closeDialog()
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Check if a category is locked (has a PIN set)
+     */
+    fun isCategoryLocked(categoryId: Long): Boolean {
+        return CategoryLockCrypto.hasLock(categoryId)
+    }
+
+    /**
+     * Check if a category is currently unlocked in the session
+     */
+    fun isCategoryUnlocked(categoryId: Long): Boolean {
+        return CategoryLockManager.isUnlocked(categoryId)
+    }
+    // SY <--
+
     fun openChangeCategoryDialog() {
         screenModelScope.launchIO {
             // Create a copy of selected manga
@@ -1318,6 +1361,7 @@ class LibraryScreenModel(
         data object SyncFavoritesWarning : Dialog
         data object SyncFavoritesConfirm : Dialog
         data class RecommendationSearchSheet(val manga: List<Manga>) : Dialog
+        data class UnlockCategory(val category: Category) : Dialog
         // SY <--
     }
 

@@ -744,4 +744,24 @@
 
     <!-- Humanize time -->
     <string name="humanize_fallback">moments ago</string>
+
+    <!-- Category Lock -->
+    <string name="category_lock_settings">Category lock settings</string>
+    <string name="category_lock_enter_pin">Enter PIN for %1$s</string>
+    <string name="category_lock_set_pin">Set PIN for %1$s</string>
+    <string name="category_lock_confirm_pin">Confirm PIN</string>
+    <string name="category_lock_change_pin">Change PIN</string>
+    <string name="category_lock_remove_pin">Remove PIN</string>
+    <string name="category_lock_wrong_pin">Wrong PIN</string>
+    <string name="category_lock_pin_set">PIN set successfully</string>
+    <string name="category_lock_pin_removed">PIN removed</string>
+    <string name="category_lock_pin_requirement">Enter 4-10 digit PIN</string>
+    <string name="category_lock_timeout">Lock timeout</string>
+    <string name="category_lock_timeout_never">Never re-lock during session</string>
+    <string name="category_lock_timeout_always">Always require PIN</string>
+    <string name="category_lock_show_locked">Show locked categories</string>
+    <string name="category_lock_tap_to_unlock">Tap to unlock</string>
+    <string name="category_locked">Private Categories</string>
+    <string name="action_unlock">Unlock</string>
+    <string name="action_next">Next</string>
 </resources>

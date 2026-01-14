@@ -36,6 +36,16 @@ class SecurityPreferences(
     fun encryptionType() = this.preferenceStore.getEnum("encryption_type", EncryptionType.AES_256)
 
     fun cbzPassword() = this.preferenceStore.getString(Preference.appStateKey("cbz_password"), "")
+
+    // Category lock preferences
+    fun categoryLockPins() = preferenceStore.getStringSet(
+        Preference.privateKey("category_lock_pins"),
+        emptySet(),
+    )
+
+    fun categoryLockTimeout() = preferenceStore.getInt("category_lock_timeout", 0)
+
+    fun showLockedCategories() = preferenceStore.getBoolean("show_locked_categories", true)
     // SY <--
 
     /**
