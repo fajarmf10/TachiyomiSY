@@ -668,6 +668,7 @@
     <string name="pref_show_flare_solverr_notifications_summary">Display toast notifications when FlareSolverr is actively solving Cloudflare challenges</string>
     <string name="pref_test_flare_solverr_and_update_user_agent">Test FlareSolverr and update user agent</string>
     <string name="pref_test_flare_solverr_and_update_user_agent_summary">Test FlareSolverr to update the user agent. Only required once; then toggle as needed.</string>
+    <string name="pref_test_flare_solverr_and_update_user_agent_summary_full">Test FlareSolverr to update the user agent. Only required once; then toggle as needed. If you get DNS errors, try disabling DNS-over-HTTPS above.</string>
     <string name="flare_solverr_solving_challenge">FlareSolverr: Solving Cloudflare challenge...</string>
     <string name="flare_solverr_challenge_solved">FlareSolverr: Challenge solved successfully</string>
     <string name="flare_solverr_challenge_failed">FlareSolverr: Failed to solve challenge</string>

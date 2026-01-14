@@ -380,8 +380,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent),
                     enabled = enableFlareSolverr,
-                    subtitle = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent_summary) +
-                        " If you get DNS errors, try disabling DNS-over-HTTPS above.",
+                    subtitle = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent_summary_full),
                     onClick = {
                         scope.launch {
                             testFlareSolverrAndUpdateUserAgent(flareSolverrUrlPref, userAgentPref, context)
