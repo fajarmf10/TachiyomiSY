@@ -20,7 +20,6 @@ import eu.kanade.domain.manga.interactor.UpdateManga
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.sync.SyncPreferences
 import eu.kanade.presentation.components.SEARCH_DEBOUNCE_MILLIS
-import eu.kanade.tachiyomi.util.storage.CategoryLockCrypto
 import eu.kanade.presentation.library.components.LibraryToolbarTitle
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.tachiyomi.data.cache.CoverCache
@@ -34,6 +33,7 @@ import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.source.online.all.MergedSource
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
+import eu.kanade.tachiyomi.util.storage.CategoryLockCrypto
 import exh.favorites.FavoritesSyncHelper
 import exh.md.utils.FollowStatus
 import exh.md.utils.MdUtil
@@ -1298,6 +1298,7 @@ class LibraryScreenModel(
     }
 
     // SY -->
+
     /**
      * Ensure the given category is accessible, showing the unlock dialog if it is locked and not yet unlocked.
      *

@@ -28,7 +28,7 @@ class TempFolderCleanupWorker(
      *
      * The worker always reports success to WorkManager regardless of whether cleanup was performed or any items were removed.
      *
-     * @return `Result.success()` indicating the work completed. 
+     * @return `Result.success()` indicating the work completed.
      */
     override suspend fun doWork(): Result {
         if (!downloadPreferences.cleanupOrphanedFoldersOnStartup().get()) return Result.success()
@@ -44,7 +44,7 @@ class TempFolderCleanupWorker(
          *
          * @param maxAgeMillis Age threshold in milliseconds; folders last modified earlier than
          *                     (current time - maxAgeMillis) are considered orphaned and eligible for deletion.
-         * @return The number of temporary folders deleted. 
+         * @return The number of temporary folders deleted.
          */
         suspend fun cleanupOrphanedTempFolders(
             maxAgeMillis: Long = TimeUnit.HOURS.toMillis(1),

@@ -34,29 +34,30 @@ class SecurityPreferences(
     )
 
     /**
- * Retrieves the configured encryption type used for stored data.
- *
- * @return The selected [EncryptionType]; defaults to `EncryptionType.AES_256` if not set.
- */
-fun encryptionType() = this.preferenceStore.getEnum("encryption_type", EncryptionType.AES_256)
+     * Retrieves the configured encryption type used for stored data.
+     *
+     * @return The selected [EncryptionType]; defaults to `EncryptionType.AES_256` if not set.
+     */
+    fun encryptionType() = this.preferenceStore.getEnum("encryption_type", EncryptionType.AES_256)
 
     /**
- * Password used for CBZ archives.
- *
- * @return The CBZ archive password, or an empty string if not set.
- */
-fun cbzPassword() = this.preferenceStore.getString(Preference.appStateKey("cbz_password"), "")
+     * Password used for CBZ archives.
+     *
+     * @return The CBZ archive password, or an empty string if not set.
+     */
+    fun cbzPassword() = this.preferenceStore.getString(Preference.appStateKey("cbz_password"), "")
 
     // Category lock preferences
     // SECURITY NOTE: Category PINs are stored in SharedPreferences using the privateKey prefix
     // to exclude them from backups. The PIN values themselves are encrypted using Android KeyStore
     // (AES-256) via CategoryLockCrypto before storage. For enhanced security, consider migrating
+
     /**
      * Provides the stored set of category lock PINs.
      *
      * Values are persisted using a private preference key (excluded from backups) and are encrypted before storage.
      *
-     * @return The set of category lock PINs. 
+     * @return The set of category lock PINs.
      */
     fun categoryLockPins() = preferenceStore.getStringSet(
         Preference.privateKey("category_lock_pins"),
@@ -73,11 +74,11 @@ fun cbzPassword() = this.preferenceStore.getString(Preference.appStateKey("cbz_p
     fun categoryLockTimeout() = preferenceStore.getInt("category_lock_timeout", 0)
 
     /**
- * Controls whether locked categories are displayed in category lists.
- *
- * @return `true` if locked categories are shown, `false` otherwise.
- */
-fun showLockedCategories() = preferenceStore.getBoolean("show_locked_categories", true)
+     * Controls whether locked categories are displayed in category lists.
+     *
+     * @return `true` if locked categories are shown, `false` otherwise.
+     */
+    fun showLockedCategories() = preferenceStore.getBoolean("show_locked_categories", true)
 
     /**
      * Provides the stored failed-PIN attempt counts for category locks.

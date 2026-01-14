@@ -81,10 +81,11 @@ class AutoDownloadPollingWorker(
 
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(
-                    if (preferences.downloadOnlyOverWifi().get())
-                        NetworkType.UNMETERED  // WiFi only
-                    else
-                        NetworkType.CONNECTED   // Any network
+                    if (preferences.downloadOnlyOverWifi().get()) {
+                        NetworkType.UNMETERED // WiFi only
+                    } else {
+                        NetworkType.CONNECTED // Any network
+                    },
                 )
                 .setRequiresBatteryNotLow(true)
                 .setRequiresStorageNotLow(true)

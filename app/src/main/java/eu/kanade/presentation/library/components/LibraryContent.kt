@@ -111,7 +111,7 @@ fun LibraryContent(
                         scope.launch {
                             pagerState.animateScrollToPage(index)
                         }
-                    // SY -->
+                        // SY -->
                     }
                     // SY <--
                 },

@@ -101,7 +101,7 @@ class DownloadQueueRepositoryImpl(
                 chapterId,
                 mapper = ::mapDownloadQueueEntry,
             ).executeAsOneOrNull()
-            
+
             if (existing != null) {
                 // Entry already exists, return null per interface contract
                 null

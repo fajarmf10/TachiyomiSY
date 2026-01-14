@@ -23,10 +23,6 @@ import tachiyomi.presentation.core.i18n.stringResource
 
 // SY -->
 /**
- * Overlay displayed for locked categories.
- * Shows a "Private Categories" message with a lock icon and unlock button.
- */
-/**
  * Displays a centered overlay indicating a category is locked and provides an unlock action.
  *
  * @param onUnlockClick Callback invoked when the user taps the "Unlock" button.

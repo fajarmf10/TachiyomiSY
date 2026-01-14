@@ -16,7 +16,8 @@ enum class DownloadQueueStatus(val value: String) {
     PENDING("PENDING"),
     DOWNLOADING("DOWNLOADING"),
     FAILED("FAILED"),
-    COMPLETED("COMPLETED");
+    COMPLETED("COMPLETED"),
+    ;
 
     companion object {
         /**
@@ -32,10 +33,11 @@ enum class DownloadQueueStatus(val value: String) {
 }
 
 enum class DownloadPriority(val value: Int) {
-    LOW(-1),      // New chapters from library updates
-    NORMAL(0),    // Auto-download from reading history
-    HIGH(1),      // Next chapter of currently reading manga
-    URGENT(2);    // User clicked "Download Now" or reading in reader
+    LOW(-1), // New chapters from library updates
+    NORMAL(0), // Auto-download from reading history
+    HIGH(1), // Next chapter of currently reading manga
+    URGENT(2), // User clicked "Download Now" or reading in reader
+    ;
 
     companion object {
         /**
@@ -51,11 +53,12 @@ enum class DownloadPriority(val value: Int) {
 }
 
 enum class DownloadErrorType {
-    NETWORK_ERROR,        // Retry with backoff
-    SOURCE_ERROR,         // Retry with longer backoff
-    DISK_FULL,           // Don't retry (user action needed)
-    CHAPTER_NOT_FOUND,   // Don't retry (404/deleted)
-    UNKNOWN;             // Retry with max backoff
+    NETWORK_ERROR, // Retry with backoff
+    SOURCE_ERROR, // Retry with longer backoff
+    DISK_FULL, // Don't retry (user action needed)
+    CHAPTER_NOT_FOUND, // Don't retry (404/deleted)
+    UNKNOWN, // Retry with max backoff
+    ;
 
     val canRetry: Boolean
         get() = this in arrayOf(NETWORK_ERROR, SOURCE_ERROR, UNKNOWN)

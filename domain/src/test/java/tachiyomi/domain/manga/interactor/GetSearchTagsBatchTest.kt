@@ -56,7 +56,7 @@ class GetSearchTagsBatchTest {
         val mangaId2 = 2L
         val tags1 = listOf(SearchTag(id = 1, mangaId = mangaId1, namespace = "genre", name = "Action", type = 0))
         val tags2 = listOf(SearchTag(id = 2, mangaId = mangaId2, namespace = "genre", name = "Romance", type = 0))
-        
+
         coEvery { repository.getTagsByIds(listOf(mangaId1, mangaId2)) } returns mapOf(
             mangaId1 to tags1,
             mangaId2 to tags2,
@@ -76,7 +76,7 @@ class GetSearchTagsBatchTest {
         val mangaId1 = 1L
         val mangaId2 = 2L
         val tags1 = listOf(SearchTag(id = 1, mangaId = mangaId1, namespace = "genre", name = "Action", type = 0))
-        
+
         coEvery { repository.getTagsByIds(listOf(mangaId1, mangaId2)) } returns mapOf(
             mangaId1 to tags1,
             // mangaId2 has no tags

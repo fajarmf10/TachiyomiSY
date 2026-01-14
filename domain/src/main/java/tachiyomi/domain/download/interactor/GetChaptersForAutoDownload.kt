@@ -1,11 +1,11 @@
 package tachiyomi.domain.download.interactor
 
+import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.history.interactor.GetNextChapters
 import tachiyomi.domain.history.repository.HistoryRepository
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.manga.model.Manga
-import tachiyomi.domain.chapter.model.Chapter
 import java.util.Date
 import java.util.concurrent.TimeUnit
 

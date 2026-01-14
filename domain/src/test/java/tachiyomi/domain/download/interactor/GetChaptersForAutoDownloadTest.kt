@@ -199,7 +199,7 @@ class GetChaptersForAutoDownloadTest {
                     val expectedTime = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(lookbackDays.toLong())
                     // Allow 1 second tolerance for test execution time
                     Math.abs(readAfter.time - expectedTime) < 1000
-                }
+                },
             )
         }
     }
@@ -218,7 +218,7 @@ class GetChaptersForAutoDownloadTest {
                 match { readAfter ->
                     val expectedTime = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1L)
                     Math.abs(readAfter.time - expectedTime) < 1000
-                }
+                },
             )
         }
     }

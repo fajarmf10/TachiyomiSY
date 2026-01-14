@@ -87,7 +87,7 @@ object SettingsSecurityScreen : SearchableSettings {
      * biometric lock times and days, and category lock settings.
      *
      * @param securityPreferences Source of persisted security-related preferences used to back the UI.
-     * @return A Preference.PreferenceGroup containing the security-related preference items. 
+     * @return A Preference.PreferenceGroup containing the security-related preference items.
      */
     @Composable
     private fun getSecurityGroup(

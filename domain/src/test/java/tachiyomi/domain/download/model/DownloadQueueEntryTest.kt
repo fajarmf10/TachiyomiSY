@@ -100,7 +100,7 @@ class DownloadPriorityTest {
         DownloadPriority.NORMAL.value shouldBe 0
         DownloadPriority.HIGH.value shouldBe 1
         DownloadPriority.URGENT.value shouldBe 2
-        
+
         // Verify ordering
         (DownloadPriority.LOW.value < DownloadPriority.NORMAL.value) shouldBe true
         (DownloadPriority.NORMAL.value < DownloadPriority.HIGH.value) shouldBe true

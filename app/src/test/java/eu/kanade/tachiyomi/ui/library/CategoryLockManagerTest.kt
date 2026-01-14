@@ -27,17 +27,17 @@ class CategoryLockManagerTest {
     @BeforeEach
     fun setup() {
         securityPreferences = mockk(relaxed = true)
-        
+
         // Mock Injekt
         mockkObject(Injekt)
         val module = InjektModule {
             addSingletonFactory { securityPreferences }
         }
         InjektRegistrar.registerInjectModule(module)
-        
+
         // Reset the manager state
         CategoryLockManager.lockAll()
-        
+
         // Default timeout: never re-lock during session
         every { securityPreferences.categoryLockTimeout().get() } returns 0
     }
@@ -57,7 +57,7 @@ class CategoryLockManagerTest {
     @Test
     fun `unlock marks category as unlocked`() {
         CategoryLockManager.unlock(1L)
-        
+
         CategoryLockManager.isUnlocked(1L).shouldBeTrue()
     }
 
@@ -65,7 +65,7 @@ class CategoryLockManagerTest {
     fun `lock marks category as locked`() {
         CategoryLockManager.unlock(1L)
         CategoryLockManager.lock(1L)
-        
+
         CategoryLockManager.isUnlocked(1L).shouldBeFalse()
     }
 
@@ -74,9 +74,9 @@ class CategoryLockManagerTest {
         CategoryLockManager.unlock(1L)
         CategoryLockManager.unlock(2L)
         CategoryLockManager.unlock(3L)
-        
+
         CategoryLockManager.lockAll()
-        
+
         CategoryLockManager.isUnlocked(1L).shouldBeFalse()
         CategoryLockManager.isUnlocked(2L).shouldBeFalse()
         CategoryLockManager.isUnlocked(3L).shouldBeFalse()
@@ -87,9 +87,9 @@ class CategoryLockManagerTest {
         CategoryLockManager.unlock(1L)
         CategoryLockManager.unlock(2L)
         CategoryLockManager.unlock(3L)
-        
+
         val unlocked = CategoryLockManager.getUnlockedCategories()
-        
+
         unlocked shouldHaveSize 3
         unlocked shouldContainExactlyInAnyOrder listOf(1L, 2L, 3L)
     }
@@ -97,9 +97,9 @@ class CategoryLockManagerTest {
     @Test
     fun `getUnlockedCategories returns empty set when all locked`() {
         CategoryLockManager.lockAll()
-        
+
         val unlocked = CategoryLockManager.getUnlockedCategories()
-        
+
         unlocked.shouldBeEmpty()
     }
 
@@ -108,7 +108,7 @@ class CategoryLockManagerTest {
         CategoryLockManager.unlock(1L)
         CategoryLockManager.unlock(1L)
         CategoryLockManager.unlock(1L)
-        
+
         CategoryLockManager.isUnlocked(1L).shouldBeTrue()
         CategoryLockManager.getUnlockedCategories() shouldHaveSize 1
     }
@@ -117,17 +117,17 @@ class CategoryLockManagerTest {
     fun `locking already locked category is idempotent`() {
         CategoryLockManager.lock(1L)
         CategoryLockManager.lock(1L)
-        
+
         CategoryLockManager.isUnlocked(1L).shouldBeFalse()
     }
 
     @Test
     fun `timeout of -1 always requires PIN`() {
         every { securityPreferences.categoryLockTimeout().get() } returns -1
-        
+
         CategoryLockManager.unlock(1L)
         CategoryLockManager.unlock(2L)
-        
+
         // Check if unlocked (triggers timeout check)
         CategoryLockManager.isUnlocked(1L).shouldBeFalse()
         CategoryLockManager.isUnlocked(2L).shouldBeFalse()
@@ -136,9 +136,9 @@ class CategoryLockManagerTest {
     @Test
     fun `timeout of 0 never re-locks during session`() {
         every { securityPreferences.categoryLockTimeout().get() } returns 0
-        
+
         CategoryLockManager.unlock(1L)
-        
+
         // Should remain unlocked regardless of time
         CategoryLockManager.isUnlocked(1L).shouldBeTrue()
     }
@@ -148,7 +148,7 @@ class CategoryLockManagerTest {
         CategoryLockManager.unlock(1L)
         CategoryLockManager.unlock(2L)
         CategoryLockManager.lock(1L)
-        
+
         CategoryLockManager.isUnlocked(1L).shouldBeFalse()
         CategoryLockManager.isUnlocked(2L).shouldBeTrue()
     }
@@ -159,9 +159,9 @@ class CategoryLockManagerTest {
         CategoryLockManager.unlock(2L)
         CategoryLockManager.unlock(3L)
         CategoryLockManager.lock(2L)
-        
+
         val unlocked = CategoryLockManager.getUnlockedCategories()
-        
+
         unlocked shouldHaveSize 2
         unlocked shouldContain 1L
         unlocked shouldContain 3L
@@ -171,9 +171,9 @@ class CategoryLockManagerTest {
     @Test
     fun `handles large category IDs correctly`() {
         val largeCategoryId = Long.MAX_VALUE
-        
+
         CategoryLockManager.unlock(largeCategoryId)
-        
+
         CategoryLockManager.isUnlocked(largeCategoryId).shouldBeTrue()
         CategoryLockManager.getUnlockedCategories() shouldContain largeCategoryId
     }
@@ -181,9 +181,9 @@ class CategoryLockManagerTest {
     @Test
     fun `handles negative category IDs correctly`() {
         val negativeCategoryId = -1L
-        
+
         CategoryLockManager.unlock(negativeCategoryId)
-        
+
         CategoryLockManager.isUnlocked(negativeCategoryId).shouldBeTrue()
         CategoryLockManager.getUnlockedCategories() shouldContain negativeCategoryId
     }

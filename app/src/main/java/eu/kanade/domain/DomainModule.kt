@@ -68,8 +68,8 @@ import tachiyomi.domain.chapter.interactor.SetMangaDefaultChapterFlags
 import tachiyomi.domain.chapter.interactor.ShouldUpdateDbChapter
 import tachiyomi.domain.chapter.interactor.UpdateChapter
 import tachiyomi.domain.chapter.repository.ChapterRepository
-import tachiyomi.domain.download.repository.DownloadQueueRepository
 import tachiyomi.domain.download.interactor.GetChaptersForAutoDownload
+import tachiyomi.domain.download.repository.DownloadQueueRepository
 import tachiyomi.domain.history.interactor.GetHistory
 import tachiyomi.domain.history.interactor.GetNextChapters
 import tachiyomi.domain.history.interactor.GetTotalReadDuration

@@ -11,6 +11,7 @@ import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.library.LibraryUpdateNotifier
 import eu.kanade.tachiyomi.data.notification.NotificationHandler
+import eu.kanade.tachiyomi.network.HttpException
 import eu.kanade.tachiyomi.source.UnmeteredSource
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
@@ -61,17 +62,16 @@ import tachiyomi.core.metadata.comicinfo.ComicInfo
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.download.model.DownloadErrorType
+import tachiyomi.domain.download.repository.DownloadQueueRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
 import tachiyomi.i18n.MR
-import eu.kanade.tachiyomi.network.HttpException
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
 import java.util.Locale
-import tachiyomi.domain.download.repository.DownloadQueueRepository
 
 /**
  * This class is the one in charge of downloading chapters.
@@ -541,8 +541,9 @@ class Downloader(
         if (message.contains("space") ||
             message.contains("disk") ||
             message.contains("storage") ||
-            message.contains("enospc") ||  // Linux error code
-            message.contains("no space left")) {
+            message.contains("enospc") || // Linux error code
+            message.contains("no space left")
+        ) {
             return DownloadErrorType.DISK_FULL
         }
 

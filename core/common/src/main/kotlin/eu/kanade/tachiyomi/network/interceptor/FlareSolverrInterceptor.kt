@@ -220,18 +220,18 @@ class FlareSolverrInterceptor(
                             POST(
                                 url = flareSolverrUrl,
                                 body =
-                                    Json.encodeToString(
-                                        FlareSolverRequest(
-                                            "request.get",
-                                            originalRequest.url.toString(),
-                                            cookies =
-                                                network.cookieJar.get(originalRequest.url).map {
-                                                    FlareSolverCookie(it.name, it.value)
-                                                },
-                                            returnOnlyCookies = true,
-                                            maxTimeout = 90000,
-                                        ),
-                                    ).toRequestBody(jsonMediaType),
+                                Json.encodeToString(
+                                    FlareSolverRequest(
+                                        "request.get",
+                                        originalRequest.url.toString(),
+                                        cookies =
+                                        network.cookieJar.get(originalRequest.url).map {
+                                            FlareSolverCookie(it.name, it.value)
+                                        },
+                                        returnOnlyCookies = true,
+                                        maxTimeout = 90000,
+                                    ),
+                                ).toRequestBody(jsonMediaType),
                             ),
                         ).awaitSuccess().parseAs<FlareSolverResponse>()
                     }

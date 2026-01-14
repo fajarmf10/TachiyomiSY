@@ -56,7 +56,7 @@ class GetSearchTitlesBatchTest {
         val mangaId2 = 2L
         val titles1 = listOf(SearchTitle(id = 1, mangaId = mangaId1, title = "Manga One", type = 0))
         val titles2 = listOf(SearchTitle(id = 2, mangaId = mangaId2, title = "Manga Two", type = 0))
-        
+
         coEvery { repository.getTitlesByIds(listOf(mangaId1, mangaId2)) } returns mapOf(
             mangaId1 to titles1,
             mangaId2 to titles2,
@@ -76,7 +76,7 @@ class GetSearchTitlesBatchTest {
         val mangaId1 = 1L
         val mangaId2 = 2L
         val titles1 = listOf(SearchTitle(id = 1, mangaId = mangaId1, title = "Manga One", type = 0))
-        
+
         coEvery { repository.getTitlesByIds(listOf(mangaId1, mangaId2)) } returns mapOf(
             mangaId1 to titles1,
             // mangaId2 has no titles

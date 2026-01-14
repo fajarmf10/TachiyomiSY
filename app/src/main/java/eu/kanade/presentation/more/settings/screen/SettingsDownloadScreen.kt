@@ -23,8 +23,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.launch
-import tachiyomi.core.common.i18n.pluralStringResource as pluralStringResourceContext
-import tachiyomi.core.common.i18n.stringResource as stringResourceContext
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.model.Category
@@ -35,6 +33,8 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import tachiyomi.core.common.i18n.pluralStringResource as pluralStringResourceContext
+import tachiyomi.core.common.i18n.stringResource as stringResourceContext
 
 object SettingsDownloadScreen : SearchableSettings {
 

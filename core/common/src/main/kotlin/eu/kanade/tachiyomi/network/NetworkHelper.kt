@@ -67,7 +67,6 @@ open /* SY <-- */ class NetworkHelper(
         }
     }
 
-
     /* SY --> */
     open /* SY <-- */ val client = clientBuilder
         .addInterceptor(
