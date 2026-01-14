@@ -40,6 +40,6 @@ dependencies {
 
     testImplementation(libs.bundles.test)
     testImplementation(kotlinx.coroutines.test)
-    testImplementation(libs.koin.test)
+    testImplementation(sylibs.koin.test)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
