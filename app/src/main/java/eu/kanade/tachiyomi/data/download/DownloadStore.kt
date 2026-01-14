@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.core.content.edit
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.source.online.HttpSource
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
@@ -94,10 +93,10 @@ class DownloadStore(
     }
 
     /**
-     * Returns the list of downloads to restore. It should be called in a background thread.
-     * Migrates from SharedPreferences to database on first run.
+     * Returns the list of downloads to restore. Migrates from SharedPreferences to database on first run.
+     * This is a suspend function and should be called from a coroutine context.
      */
-    fun restore(): List<Download> {
+    suspend fun restore(): List<Download> {
         val migrationCompleted = preferences.getBoolean("queue_migrated_to_db", false)
 
         // If not migrated yet, migrate SharedPreferences to database
@@ -109,28 +108,36 @@ class DownloadStore(
 
             if (objs.isNotEmpty()) {
                 logcat(LogPriority.INFO) { "Migrating ${objs.size} downloads to database..." }
-                runBlocking {
-                    objs.forEach { obj ->
-                        try {
-                            downloadQueueRepository.add(
-                                mangaId = obj.mangaId,
-                                chapterId = obj.chapterId,
-                                priority = DownloadPriority.NORMAL.value,
-                            )
-                        } catch (e: Exception) {
-                            logcat(LogPriority.ERROR, e) { "Failed to migrate download: ${obj.chapterId}" }
-                        }
+                var failed = 0
+                objs.forEach { obj ->
+                    try {
+                        downloadQueueRepository.add(
+                            mangaId = obj.mangaId,
+                            chapterId = obj.chapterId,
+                            priority = DownloadPriority.NORMAL.value,
+                        )
+                    } catch (e: Exception) {
+                        failed++
+                        logcat(LogPriority.ERROR, e) { "Failed to migrate download: ${obj.chapterId}" }
                     }
                 }
-                logcat(LogPriority.INFO) { "Migration to database completed" }
+                if (failed == 0) {
+                    logcat(LogPriority.INFO) { "Migration to database completed" }
+                } else {
+                    logcat(LogPriority.ERROR) { "Migration incomplete ($failed failures). Will retry next launch." }
+                    // Return empty list - old data remains in preferences for retry on next launch
+                    return emptyList()
+                }
             }
 
             // Mark migration as complete BEFORE clearing to prevent data loss on crash
+            // Only mark complete if all inserts succeeded (checked above)
             preferences.edit {
                 putBoolean("queue_migrated_to_db", true)
             }
 
             // Then clear old entries in a separate transaction
+            // Only clear if migration fully succeeded (checked above)
             val keysToRemove = preferences.all.keys.filter { it != "queue_migrated_to_db" }
             preferences.edit {
                 keysToRemove.forEach { remove(it) }
@@ -139,16 +146,16 @@ class DownloadStore(
 
         // Now load from database
         val downloads = mutableListOf<Download>()
-        val queueEntries = runBlocking { downloadQueueRepository.getPendingByPriority() }
+        val queueEntries = downloadQueueRepository.getPendingByPriority()
 
         if (queueEntries.isNotEmpty()) {
             val cachedManga = mutableMapOf<Long, Manga?>()
             for (entry in queueEntries) {
                 val manga = cachedManga.getOrPut(entry.mangaId) {
-                    runBlocking { getManga.await(entry.mangaId) }
+                    getManga.await(entry.mangaId)
                 } ?: continue
                 val source = sourceManager.get(manga.source) as? HttpSource ?: continue
-                val chapter = runBlocking { getChapter.await(entry.chapterId) } ?: continue
+                val chapter = getChapter.await(entry.chapterId) ?: continue
                 downloads.add(Download(source, manga, chapter))
             }
         }

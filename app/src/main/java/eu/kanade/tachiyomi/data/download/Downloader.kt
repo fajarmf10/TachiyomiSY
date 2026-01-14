@@ -130,8 +130,8 @@ class Downloader(
 
     init {
         launchNow {
-            val chapters = async { store.restore() }
-            addAllToQueue(chapters.await())
+            val chapters = store.restore()
+            addAllToQueue(chapters)
         }
         if (downloadPreferences.cleanupOrphanedFoldersOnStartup().get()) {
             launchNow {
