@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import android.content.ClipData
+import android.widget.Toast
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.clipboard.ClipEntry
 import androidx.compose.ui.clipboard.Clipboard
@@ -301,6 +302,11 @@ private fun SearchResultItem(
                         onCopyName = {
                             scope.launch {
                                 clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Track Title", trackSearch.title)))
+                                Toast.makeText(
+                                    context,
+                                    context.stringResource(MR.strings.copied_to_clipboard_plain),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                             }
                         },
                         onOpenInBrowser = {
