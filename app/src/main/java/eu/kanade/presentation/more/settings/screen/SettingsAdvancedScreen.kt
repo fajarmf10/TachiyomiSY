@@ -355,6 +355,12 @@ object SettingsAdvancedScreen : SearchableSettings {
                     enabled = enableFlareSolverr,
                     subtitle = stringResource(MR.strings.pref_flare_solverr_url_summary) + " (e.g., http://localhost:8191). Note: /v1 will be appended automatically.",
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = networkPreferences.showFlareSolverrNotifications(),
+                    title = "Show FlareSolverr notifications",
+                    subtitle = "Display toast notifications when FlareSolverr is actively solving Cloudflare challenges",
+                    enabled = enableFlareSolverr,
+                ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent),
                     enabled = enableFlareSolverr,

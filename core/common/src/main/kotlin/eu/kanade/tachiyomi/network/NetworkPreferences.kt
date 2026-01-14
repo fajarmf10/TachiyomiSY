@@ -20,6 +20,10 @@ class NetworkPreferences(
         return preferenceStore.getString("flaresolverr_url", "http://localhost:8191/v1")
     }
 
+    fun showFlareSolverrNotifications(): Preference<Boolean> {
+        return preferenceStore.getBoolean("show_flaresolverr_notifications", true)
+    }
+
     fun dohProvider(): Preference<Int> {
         return preferenceStore.getInt("doh_provider", -1)
     }

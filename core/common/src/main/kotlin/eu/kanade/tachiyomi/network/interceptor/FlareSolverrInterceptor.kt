@@ -1,6 +1,10 @@
 package eu.kanade.tachiyomi.network.interceptor
 
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.webkit.CookieManager
+import android.widget.Toast
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.NetworkPreferences
 import eu.kanade.tachiyomi.network.POST
@@ -26,7 +30,10 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Interceptor {
+class FlareSolverrInterceptor(
+    private val context: Context,
+    private val preferences: NetworkPreferences,
+) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 
@@ -42,18 +49,57 @@ class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Int
             return originalResponse
         }
 
-        logcat(LogPriority.DEBUG) { "Intercepting request: ${originalRequest.url}" }
+        logcat(LogPriority.INFO) { "🔄 FlareSolverr: Cloudflare challenge detected at ${originalRequest.url.host}" }
+
+        // Show toast notification that FlareSolverr is working
+        if (preferences.showFlareSolverrNotifications().get()) {
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(
+                    context,
+                    "FlareSolverr: Solving Cloudflare challenge...",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
 
         return try {
             originalResponse.close()
 
+            val startTime = System.currentTimeMillis()
             val request =
                 runBlocking {
                     CFClearance.resolveWithFlareSolverr(originalRequest)
                 }
+            val duration = System.currentTimeMillis() - startTime
+
+            logcat(LogPriority.INFO) { "✅ FlareSolverr: Challenge solved in ${duration}ms for ${originalRequest.url.host}" }
+
+            // Show success notification
+            if (preferences.showFlareSolverrNotifications().get()) {
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(
+                        context,
+                        "FlareSolverr: Challenge solved successfully",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
 
             chain.proceed(request)
         } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e) { "❌ FlareSolverr: Failed to solve challenge for ${originalRequest.url.host}" }
+
+            // Show error notification
+            if (preferences.showFlareSolverrNotifications().get()) {
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(
+                        context,
+                        "FlareSolverr: Failed to solve challenge",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+
             // Because OkHttp's enqueue only handles IOExceptions, wrap the exception so that
             // we don't crash the entire app
             throw IOException(e)
@@ -158,7 +204,7 @@ class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Int
                                                     FlareSolverCookie(it.name, it.value)
                                                 },
                                             returnOnlyCookies = true,
-                                            maxTimeout = 60000,
+                                            maxTimeout = 90000,
                                         ),
                                     ).toRequestBody(jsonMediaType),
                             ),
