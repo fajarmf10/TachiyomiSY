@@ -42,6 +42,13 @@ object SettingsDownloadScreen : SearchableSettings {
     @Composable
     override fun getTitleRes() = MR.strings.pref_category_downloads
 
+    /**
+     * Builds the top-level list of download-related preference items displayed on the settings screen.
+     *
+     * Observes category and download preference state so the returned preferences reflect current values and react to changes.
+     *
+     * @return A list of `Preference` items representing individual download options (switches, sliders, lists, and grouped sections).
+     */
     @Composable
     override fun getPreferences(): List<Preference> {
         val getCategories = remember { Injekt.get<GetCategories>() }
@@ -200,6 +207,12 @@ object SettingsDownloadScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Creates the "Download ahead" preference group for configuring automatic downloads while reading.
+     *
+     * @param downloadPreferences Preferences source used to back the group's settings.
+     * @return A Preference.PreferenceGroup containing a list preference for selecting how many upcoming chapters to download while reading and an informational preference explaining the feature.
+     */
     @Composable
     private fun getDownloadAheadGroup(
         downloadPreferences: DownloadPreferences,
@@ -225,6 +238,15 @@ object SettingsDownloadScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Builds the "Download Queue" preference group for download-related settings.
+     *
+     * Provides a list preference to configure the periodic worker interval (scheduling periodic work when changed)
+     * and a list preference to configure the maximum automatic download retries.
+     *
+     * @param downloadPreferences Preferences store for download-related settings used to back the preferences.
+     * @return A Preference.PreferenceGroup containing the download worker interval and max-retries list preferences.
+     */
     @Composable
     private fun getDownloadQueueGroup(
         downloadPreferences: DownloadPreferences,
@@ -264,6 +286,15 @@ object SettingsDownloadScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Builds the "Auto-download (advanced)" preference group for reading-history based auto-download settings.
+     *
+     * Provides a switch to enable or disable auto-downloading from reading history and a slider to select
+     * how many days of reading history to consider; the slider is enabled only when the switch is on.
+     *
+     * @return A Preference.PreferenceGroup containing the switch for enabling periodic auto-downloads and
+     * a slider for the lookback days used when sourcing chapters from reading history.
+     */
     @Composable
     private fun getAutoDownloadAdvancedGroup(
         downloadPreferences: DownloadPreferences,
@@ -297,6 +328,15 @@ object SettingsDownloadScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Builds the "Storage cleanup" preference group for downloads.
+     *
+     * The group contains a switch to enable or disable cleanup of orphaned temporary folders on startup
+     * and a "Cleanup now" action that triggers immediate cleanup and reports the result to the user.
+     *
+     * @param downloadPreferences Preferences used to back the cleanup switch and related settings.
+     * @return A Preference.PreferenceGroup with storage cleanup preferences and actions.
+     */
     @Composable
     private fun getStorageCleanupGroup(
         downloadPreferences: DownloadPreferences,

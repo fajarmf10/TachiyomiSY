@@ -41,6 +41,25 @@ import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.i18n.stringResource
 
 // SY -->
+/**
+ * Shows a modal dialog that lets the user enter or set a numeric PIN for a category.
+ *
+ * In unlock mode (isSettingPin = false) the dialog prompts for an existing PIN and invokes
+ * [onPinEntered] when a PIN of length 4–10 is submitted; if the callback returns `true` the
+ * dialog is dismissed, otherwise an error is shown and input is cleared with a shake animation.
+ *
+ * In setup mode (isSettingPin = true) the dialog first collects a PIN (4–10 digits), then asks
+ * for confirmation. If the confirmation matches the first PIN, [onPinEntered] is invoked and the
+ * dialog is dismissed when it returns `true`; mismatches or a failing callback show an error and
+ * reset the flow. Visual feedback includes PIN dots, error text, and a shake animation on errors.
+ *
+ * @param categoryName Display name of the category shown in the dialog title.
+ * @param onDismiss Called to dismiss the dialog (e.g., Cancel or successful completion).
+ * @param onPinEntered Callback invoked with the entered PIN. Should return `true` on success to
+ *   dismiss the dialog, or `false` to indicate failure (which displays an error and resets input).
+ * @param isSettingPin When `true`, the dialog runs the two-step set-and-confirm flow; when `false`,
+ *   the dialog runs the single-step unlock flow. Defaults to `false`.
+ */
 @Composable
 fun CategoryPinDialog(
     categoryName: String,
@@ -273,6 +292,12 @@ fun CategoryPinDialog(
     )
 }
 
+/**
+ * Renders a circular dot used to indicate a PIN digit's filled state.
+ *
+ * @param filled `true` to display the dot as filled (primary color), `false` to display it as empty (surface variant).
+ * @param modifier Optional layout [Modifier] applied to the dot.
+ */
 @Composable
 private fun PinDot(
     filled: Boolean,
@@ -289,6 +314,13 @@ private fun PinDot(
     ) {}
 }
 
+/**
+ * A circular numeric keypad button that displays a single digit and invokes an action when pressed.
+ *
+ * @param number The label shown on the button (typically a single digit like "0"–"9").
+ * @param onClick Callback invoked when the button is pressed.
+ * @param modifier Optional layout modifier applied to the button.
+ */
 @Composable
 private fun NumberButton(
     number: String,

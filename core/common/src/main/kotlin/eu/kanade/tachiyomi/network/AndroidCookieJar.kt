@@ -48,10 +48,21 @@ class AndroidCookieJar : CookieJar {
             .count()
     }
 
+    /**
+     * Removes all cookies managed by the Android CookieManager.
+     */
     fun removeAll() {
         manager.removeAllCookies {}
     }
 
+    /**
+     * Merges the provided cookies into the CookieManager for the given URL, overwriting any existing cookies with the same names.
+     *
+     * Existing cookies for the URL are preserved unless a cookie in `cookies` has the same name, in which case it is replaced.
+     *
+     * @param url The request URL whose cookie store will be updated.
+     * @param cookies List of cookies to add or update for the given URL.
+     */
     fun addAll(url: HttpUrl, cookies: List<Cookie>) {
         val urlString = url.toString()
 

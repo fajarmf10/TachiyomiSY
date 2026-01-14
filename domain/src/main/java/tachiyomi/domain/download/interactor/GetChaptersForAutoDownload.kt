@@ -16,6 +16,15 @@ class GetChaptersForAutoDownload(
     private val downloadPreferences: DownloadPreferences,
 ) {
 
+    /**
+     * Compute mangas and their unread chapters to auto-download based on recent reading history and download preferences.
+     *
+     * Respects the user's settings for enabling auto-download, the lookback window for recent reads, and the maximum
+     * chapters to download per manga; mangas with no available unread chapters or missing metadata are excluded.
+     *
+     * @return A list of pairs where each pair contains a `Manga` and the corresponding list of unread `Chapter` objects
+     *         selected for auto-download.
+     */
     suspend fun await(): List<Pair<Manga, List<Chapter>>> {
         if (!downloadPreferences.autoDownloadFromReadingHistory().get()) return emptyList()
 

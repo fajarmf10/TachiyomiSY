@@ -79,6 +79,16 @@ object SettingsSecurityScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Builds the security preferences group shown on the security settings screen.
+     *
+     * The returned group contains preferences for biometric authentication, app lock timing,
+     * notification content hiding, secure-screen mode, CBZ archive password and encryption,
+     * biometric lock times and days, and category lock settings.
+     *
+     * @param securityPreferences Source of persisted security-related preferences used to back the UI.
+     * @return A Preference.PreferenceGroup containing the security-related preference items. 
+     */
     @Composable
     private fun getSecurityGroup(
         securityPreferences: SecurityPreferences,

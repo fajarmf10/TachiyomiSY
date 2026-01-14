@@ -36,6 +36,14 @@ class FlareSolverrInterceptor(
     private val context: Context,
     private val preferences: NetworkPreferences,
 ) : Interceptor {
+    /**
+     * Intercepts an OkHttp request and, when a Cloudflare anti-bot challenge is detected, attempts to
+     * solve it via FlareSolverr and retry the request; otherwise returns the original response.
+     *
+     * @return The response to use for the request: the original response if no challenge was detected
+     * or the response from the retried request after a successful FlareSolverr solve.
+     * @throws IOException If solving the Cloudflare challenge fails; the original error is wrapped. 
+     */
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 
@@ -176,6 +184,21 @@ class FlareSolverrInterceptor(
             val version: String,
         )
 
+        /**
+         * Obtains a Cloudflare challenge solution from a FlareSolverr service and returns a new request
+         * for the original URL with the solver-provided cookies and User-Agent applied.
+         *
+         * Contacts the configured FlareSolverr v1 endpoint, requests a solution for the given request URL,
+         * installs returned cookies into the provided CookieManager, and builds a new Request with a
+         * combined `Cookie` header and the solver `User-Agent`.
+         *
+         * @param originalRequest The original OkHttp Request that triggered the Cloudflare challenge.
+         * @param cookieManager The CookieManager to install cookies into; defaults to CookieManager.getInstance().
+         * @return A new Request identical to `originalRequest` but with `Cookie` and `User-Agent` headers set
+         *         according to the FlareSolverr solution.
+         * @throws IllegalArgumentException If the FlareSolverr URL is not configured.
+         * @throws CloudflareBypassException If FlareSolverr returns a non-success response for the challenge.
+         */
         suspend fun resolveWithFlareSolverr(
             originalRequest: Request,
             cookieManager: CookieManager = CookieManager.getInstance(),
@@ -245,6 +268,16 @@ class FlareSolverrInterceptor(
             }
         }
 
+        /**
+         * Constructs an HTTP cookie header string for the given FlareSolverr solution cookie and domain.
+         *
+         * Formats the `Expires` attribute as an RFC 1123 UTC date when `cookie.expires` is present and greater than zero;
+         * otherwise uses "Fri, 31 Dec 9999 23:59:59 GMT" to indicate a distant-future expiry. Includes `Domain`, `Path`,
+         * and appends `HttpOnly` and `Secure` attributes when applicable.
+         *
+         * @param cookie The FlareSolverr solution cookie containing `name`, `value`, `path`, `expires`, `httpOnly`, and `secure`.
+         * @param domain The domain value to use for the cookie's `Domain` attribute.
+         * @return A formatted cookie header string suitable for use in an HTTP `Cookie` header.
         private fun buildCookieString(cookie: FlareSolverSolutionCookie, domain: String): String {
             val formatter = DateTimeFormatter.RFC_1123_DATE_TIME
             val expires = if (cookie.expires != null && cookie.expires > 0) {

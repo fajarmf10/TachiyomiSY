@@ -232,6 +232,16 @@ fun TrackerSearch(
     }
 }
 
+/**
+ * Renders a selectable track search result item showing cover, title, metadata, and available actions.
+ *
+ * Displays the track's title, authors/artists, publishing type, start date, status, score, and summary when present.
+ * A long-press opens a contextual menu with actions such as copying the track title or opening the tracking URL in a browser.
+ *
+ * @param trackSearch The TrackSearch data to display.
+ * @param selected Whether the item is currently selected; selected items show a visual check indicator and a highlighted border.
+ * @param onClick Callback invoked when the item is tapped.
+ */
 @Composable
 private fun SearchResultItem(
     trackSearch: TrackSearch,

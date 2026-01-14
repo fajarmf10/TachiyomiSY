@@ -358,9 +358,12 @@ class Downloader(
     }
 
     /**
-     * Downloads a chapter.
+     * Downloads the specified chapter into the provider storage, updating the download's status and persisting completion or failure.
      *
-     * @param download the chapter to be downloaded.
+     * On success the download is marked as downloaded and persisted as completed; on failure it is marked as error and the failure is recorded.
+     *
+     * @param download The Download entry representing the chapter to download.
+     * @throws CancellationException If the coroutine is cancelled during download.
      */
     private suspend fun downloadChapter(download: Download) {
         val mangaDir =
@@ -491,6 +494,17 @@ class Downloader(
         }
     }
 
+    /**
+     * Records a failure for a download and removes the download from the queue if the error is not retryable.
+     *
+     * Persists the provided error message (or a localized "unknown error" string when `errorMessage` is null)
+     * to the download queue repository. If `errorType.canRetry` is false, the download is removed from both
+     * the persistent queue and the in-memory queue.
+     *
+     * @param download The download entry for which the failure is being recorded.
+     * @param errorMessage Optional human-readable error message; when null a localized "unknown error" message is used.
+     * @param errorType The classified type of the error which determines whether the download may be retried.
+     */
     private suspend fun recordFailure(
         download: Download,
         errorMessage: String?,
@@ -504,6 +518,14 @@ class Downloader(
         }
     }
 
+    /**
+     * Classifies a Throwable into a corresponding DownloadErrorType.
+     *
+     * Maps ErrnoException with ENOSPC or error messages mentioning "space", "disk", "storage", "enospc", or "no space left" to `DISK_FULL`; HTTP 404/410 to `CHAPTER_NOT_FOUND`; other HTTP errors to `SOURCE_ERROR`; `IOException` to `NETWORK_ERROR`; and all other cases to `UNKNOWN`.
+     *
+     * @param error The throwable to classify.
+     * @return The corresponding DownloadErrorType.
+     */
     private fun classifyError(error: Throwable): DownloadErrorType {
         // Check for ErrnoException with ENOSPC (no space left on device)
         var cause: Throwable? = error
