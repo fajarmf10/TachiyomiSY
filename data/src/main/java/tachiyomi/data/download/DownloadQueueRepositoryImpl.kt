@@ -1,12 +1,10 @@
 package tachiyomi.data.download
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import tachiyomi.data.DatabaseHandler
 import tachiyomi.domain.download.model.DownloadErrorType
 import tachiyomi.domain.download.model.DownloadQueueEntry
 import tachiyomi.domain.download.model.DownloadQueueStatus
-import tachiyomi.domain.download.model.toDownloadQueueEntry
 import tachiyomi.domain.download.repository.DownloadQueueRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import kotlin.math.pow
