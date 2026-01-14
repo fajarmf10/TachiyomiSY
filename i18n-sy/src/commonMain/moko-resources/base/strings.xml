@@ -774,6 +774,7 @@
     <string name="category_lock_show_locked">Show locked categories</string>
     <string name="category_lock_tap_to_unlock">Tap to unlock</string>
     <string name="category_locked">Private Categories</string>
+    <string name="category_locked_icon">Locked category</string>
     <string name="category_lock_master_pin">Master recovery PIN</string>
     <string name="category_lock_master_pin_set">Set master PIN (can unlock any locked category)</string>
     <string name="category_lock_master_pin_change">Change master PIN</string>

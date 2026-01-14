@@ -10,6 +10,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.hippo.unifile.UniFile
+import logcat.LogPriority
+import logcat.logcat
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.storage.service.StorageManager
 import uy.kohesive.injekt.Injekt
@@ -32,7 +34,8 @@ class TempFolderCleanupWorker(
      */
     override suspend fun doWork(): Result {
         if (!downloadPreferences.cleanupOrphanedFoldersOnStartup().get()) return Result.success()
-        cleanupOrphanedTempFolders()
+        val cleanedCount = cleanupOrphanedTempFolders()
+        logcat(LogPriority.DEBUG) { "TempFolderCleanup: removed $cleanedCount orphaned temp folders" }
         return Result.success()
     }
 
@@ -136,16 +139,21 @@ class TempFolderCleanupWorker(
          * @return `true` if the directory and all its contents were successfully deleted, `false` otherwise.
          */
         private fun deleteDirectoryRecursively(dir: UniFile): Boolean {
-            // Delete all files and subdirectories inside
+            var allDeleted = true
+            // * Delete all files and subdirectories inside
             dir.listFiles().orEmpty().forEach { child ->
                 if (child.isDirectory) {
-                    deleteDirectoryRecursively(child)
+                    if (!deleteDirectoryRecursively(child)) {
+                        allDeleted = false
+                    }
                 } else {
-                    child.delete()
+                    if (!child.delete()) {
+                        allDeleted = false
+                    }
                 }
             }
-            // Now the directory should be empty, so we can delete it
-            return dir.delete()
+            // * Now the directory should be empty, so we can delete it
+            return allDeleted && dir.delete()
         }
     }
 }

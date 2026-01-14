@@ -18,7 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import eu.kanade.presentation.category.visualName
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.domain.category.model.Category
+import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.material.TabText
 
 /**
@@ -59,7 +61,7 @@ internal fun LibraryTabs(
                             if (isCategoryLocked(category)) {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(SYMR.strings.category_locked_icon),
                                     modifier = Modifier.width(16.dp),
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))

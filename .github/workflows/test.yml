@@ -34,6 +34,7 @@ jobs:
         run: ./gradlew test --stacktrace
 
       - name: Generate coverage report
+        if: success() || failure()
         run: ./gradlew jacocoTestReport
 
       - name: Build app (for PRs to master/develop)
