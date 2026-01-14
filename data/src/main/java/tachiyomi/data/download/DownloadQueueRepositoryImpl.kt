@@ -128,7 +128,7 @@ class DownloadQueueRepositoryImpl(
         errorMessage: String,
         errorType: DownloadErrorType,
     ) {
-        handler.await {
+        handler.await(inTransaction = true) {
             val entry = download_queueQueries.getByChapterId(
                 chapterId,
                 mapper = ::mapDownloadQueueEntry,
@@ -158,7 +158,7 @@ class DownloadQueueRepositoryImpl(
     }
 
     override suspend fun markCompleted(chapterId: Long) {
-        handler.await {
+        handler.await(inTransaction = true) {
             val entry = download_queueQueries.getByChapterId(
                 chapterId,
                 mapper = ::mapDownloadQueueEntry,
