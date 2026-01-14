@@ -158,6 +158,13 @@
     <string name="flare_solver_user_agent_update_success">FlareSolverr is working. User agent updated. Please restart the app.</string>
     <string name="flare_solver_update_user_agent_failed">FlareSolverr is not working. User agent not updated. Please check your settings.</string>
     <string name="flare_solver_error">Error connecting to FlareSolverr</string>
+    <string name="flare_solver_url_not_configured">FlareSolverr URL is not configured</string>
+    <string name="flare_solver_http_405">HTTP 405: Wrong endpoint? Make sure URL ends with /v1</string>
+    <string name="flare_solver_http_error">FlareSolverr error: HTTP %d</string>
+    <string name="flare_solver_failed">FlareSolverr failed: %s</string>
+    <string name="flare_solver_dns_error">DNS error: Cannot resolve hostname. Try disabling DNS-over-HTTPS in Advanced settings, or check your network connection.</string>
+    <string name="flare_solver_timeout_error">Timeout: FlareSolverr took too long to respond. Check if the server is running and accessible.</string>
+    <string name="flare_solver_unknown_error">FlareSolverr error: %s</string>
 
     <!-- Log Level -->
     <string name="log_minimal">Minimal</string>

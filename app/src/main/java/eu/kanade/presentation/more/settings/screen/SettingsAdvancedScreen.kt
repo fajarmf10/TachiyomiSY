@@ -16,12 +16,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.window.DialogProperties
@@ -886,7 +886,7 @@ object SettingsAdvancedScreen : SearchableSettings {
 
                 if (flareSolverUrl.isBlank()) {
                     withContext(Dispatchers.Main) {
-                        context.toast("FlareSolverr URL is not configured")
+                        context.toast(SYMR.strings.flare_solver_url_not_configured)
                     }
                     return@withContext
                 }
@@ -934,8 +934,8 @@ object SettingsAdvancedScreen : SearchableSettings {
                         }
                         withContext(Dispatchers.Main) {
                             val errorMsg = when (response.code) {
-                                405 -> "HTTP 405: Wrong endpoint? Make sure URL ends with /v1"
-                                else -> "FlareSolverr error: HTTP ${response.code}"
+                                405 -> context.getString(SYMR.strings.flare_solver_http_405)
+                                else -> context.getString(SYMR.strings.flare_solver_http_error, response.code)
                             }
                             context.toast(errorMsg)
                         }
@@ -962,7 +962,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                             "Solution failed with status: ${flareSolverResponse.solution.status}, message: ${flareSolverResponse.message}"
                         }
                         withContext(Dispatchers.Main) {
-                            context.toast("FlareSolverr failed: ${flareSolverResponse.message}")
+                            context.toast(context.getString(SYMR.strings.flare_solver_failed, flareSolverResponse.message))
                         }
                     }
                 }
@@ -974,14 +974,14 @@ object SettingsAdvancedScreen : SearchableSettings {
             withContext(Dispatchers.Main) {
                 val errorMsg = when {
                     e is java.net.UnknownHostException -> {
-                        "DNS error: Cannot resolve hostname. Try disabling DNS-over-HTTPS in Advanced settings, or check your network connection."
+                        context.getString(SYMR.strings.flare_solver_dns_error)
                     }
 
                     e.message?.contains("timeout", ignoreCase = true) == true -> {
-                        "Timeout: FlareSolverr took too long to respond. Check if the server is running and accessible."
+                        context.getString(SYMR.strings.flare_solver_timeout_error)
                     }
 
-                    else -> "FlareSolverr error: ${e.message ?: "Unknown error"}"
+                    else -> context.getString(SYMR.strings.flare_solver_unknown_error, e.message ?: "Unknown error")
                 }
                 context.toast(errorMsg)
             }

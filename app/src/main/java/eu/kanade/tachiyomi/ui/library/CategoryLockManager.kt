@@ -79,7 +79,7 @@ object CategoryLockManager {
         // 0 means never re-lock during session
         if (timeoutMinutes == 0) return
 
-        val timeoutMillis = timeoutMinutes * 60 * 1000L
+        val timeoutMillis = timeoutMinutes.toLong() * 60 * 1000L
         val currentTime = System.currentTimeMillis()
 
         val categoriesToLock = unlockTimestamps.filter { (_, timestamp) ->

@@ -67,10 +67,14 @@ class AndroidCookieJar : CookieJar {
         val urlString = url.toString()
 
         // Get existing cookies for the URL
-        val existingCookies = manager.getCookie(urlString)?.split("; ")?.associate {
-            val (name, value) = it.split('=', limit = 2)
-            name to value
-        }?.toMutableMap() ?: mutableMapOf()
+        val existingCookies = manager.getCookie(urlString)?.split("; ")?.mapNotNull { cookie ->
+            val parts = cookie.split('=', limit = 2)
+            if (parts.size == 2) {
+                parts[0] to parts[1]
+            } else {
+                null // Skip malformed cookies
+            }
+        }?.toMap()?.toMutableMap() ?: mutableMapOf()
 
         // Add or update the cookies
         cookies.forEach { newCookie ->

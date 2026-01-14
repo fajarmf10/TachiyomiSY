@@ -4,6 +4,8 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.injectLazy
@@ -242,6 +244,16 @@ object CategoryLockCrypto {
     }
 
     /**
+     * Provides a Flow that emits the set of category IDs with stored PIN locks whenever the underlying preference changes.
+     *
+     * @return A Flow emitting sets of locked category IDs.
+     */
+    fun getLockedCategoryIdsFlow(): Flow<Set<Long>> {
+        return securityPreferences.categoryLockPins().changes()
+            .map { getCategoryLockMap().keys }
+    }
+
+    /**
      * Deletes the AES key used for category PIN encryption and clears all stored PINs.
      *
      * Removes the keystore entry for the category PIN alias, regenerates a new key, and
@@ -286,6 +298,16 @@ object CategoryLockCrypto {
      */
     fun hasMasterPin(): Boolean {
         return securityPreferences.categoryLockMasterPin().get().isNotEmpty()
+    }
+
+    /**
+     * Provides a Flow that emits whether a master PIN is stored whenever the underlying preference changes.
+     *
+     * @return A Flow emitting `true` if a master PIN is set, `false` otherwise.
+     */
+    fun hasMasterPinFlow(): Flow<Boolean> {
+        return securityPreferences.categoryLockMasterPin().changes()
+            .map { it.isNotEmpty() }
     }
 
     /**

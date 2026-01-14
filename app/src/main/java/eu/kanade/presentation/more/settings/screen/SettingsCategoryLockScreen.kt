@@ -49,7 +49,8 @@ object SettingsCategoryLockScreen : SearchableSettings {
 
         val categories by getCategories.subscribe().collectAsState(initial = emptyList())
 
-        val hasMasterPin = CategoryLockCrypto.hasMasterPin()
+        val hasMasterPin by CategoryLockCrypto.hasMasterPinFlow()
+            .collectAsState(initial = CategoryLockCrypto.hasMasterPin())
 
         return listOf(
             Preference.PreferenceGroup(

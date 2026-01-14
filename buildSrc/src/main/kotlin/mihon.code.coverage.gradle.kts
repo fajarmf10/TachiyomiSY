@@ -4,7 +4,7 @@ plugins {
 }
 
 jacoco {
-    toolVersion = "0.8.12"
+    toolVersion = "0.8.14"
 }
 
 tasks.withType<Test> {
@@ -41,7 +41,6 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "**/*Module_*Factory.class",
         "**/di/**",
         "**/*_Factory*.*",
-        "**/*Module*.*",
         "**/*Dagger*.*",
         "**/*Hilt*.*",
         "**/hilt_aggregated_deps/**",
@@ -56,11 +55,16 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
-    val mainSrc = "${project.projectDir}/src/main/java"
+    val mainSrc = listOf(
+        "${project.projectDir}/src/main/java",
+        "${project.projectDir}/src/main/kotlin",
+    )
 
     sourceDirectories.setFrom(files(mainSrc))
     classDirectories.setFrom(files(debugTree))
-    executionData.setFrom(fileTree(project.buildDir) {
-        include("**/*.exec", "**/*.ec")
-    })
+    executionData.setFrom(
+        fileTree(project.buildDir) {
+            include("**/*.exec", "**/*.ec")
+        },
+    )
 }

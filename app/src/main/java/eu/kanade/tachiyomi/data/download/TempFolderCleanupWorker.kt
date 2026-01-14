@@ -113,7 +113,13 @@ class TempFolderCleanupWorker(
                 val name = file.name.orEmpty()
                 val lastMod = file.lastModified()
                 if (name.endsWith(Downloader.TMP_DIR_SUFFIX) && lastMod > 0 && lastMod < cutoffMillis) {
-                    if (file.delete()) {
+                    // For directories, delete contents first before removing the directory itself
+                    val deleted = if (file.isDirectory) {
+                        deleteDirectoryRecursively(file)
+                    } else {
+                        file.delete()
+                    }
+                    if (deleted) {
                         cleaned += 1
                     }
                 } else if (file.isDirectory) {
@@ -121,6 +127,25 @@ class TempFolderCleanupWorker(
                 }
             }
             return cleaned
+        }
+
+        /**
+         * Recursively deletes all contents of a directory, then deletes the directory itself.
+         *
+         * @param dir The directory to delete.
+         * @return `true` if the directory and all its contents were successfully deleted, `false` otherwise.
+         */
+        private fun deleteDirectoryRecursively(dir: UniFile): Boolean {
+            // Delete all files and subdirectories inside
+            dir.listFiles().orEmpty().forEach { child ->
+                if (child.isDirectory) {
+                    deleteDirectoryRecursively(child)
+                } else {
+                    child.delete()
+                }
+            }
+            // Now the directory should be empty, so we can delete it
+            return dir.delete()
         }
     }
 }

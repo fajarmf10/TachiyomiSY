@@ -227,7 +227,9 @@ object SettingsSecurityScreen : SearchableSettings {
                 },
                 kotlin.run {
                     val navigator = LocalNavigator.currentOrThrow
-                    val lockedCount = remember { eu.kanade.tachiyomi.util.storage.CategoryLockCrypto.getLockedCategoryIds().size }
+                    val lockedCategoryIds by eu.kanade.tachiyomi.util.storage.CategoryLockCrypto.getLockedCategoryIdsFlow()
+                        .collectAsState(initial = eu.kanade.tachiyomi.util.storage.CategoryLockCrypto.getLockedCategoryIds())
+                    val lockedCount = lockedCategoryIds.size
                     Preference.PreferenceItem.TextPreference(
                         title = stringResource(SYMR.strings.category_lock_settings),
                         subtitle = pluralStringResource(

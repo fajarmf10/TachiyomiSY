@@ -51,6 +51,7 @@ class SecurityPreferences(
     // SECURITY NOTE: Category PINs are stored in SharedPreferences using the privateKey prefix
     // to exclude them from backups. The PIN values themselves are encrypted using Android KeyStore
     // (AES-256) via CategoryLockCrypto before storage. For enhanced security, consider migrating
+    // to EncryptedSharedPreferences for at-rest encryption of the entire preference file.
 
     /**
      * Provides the stored set of category lock PINs.
@@ -97,7 +98,8 @@ class SecurityPreferences(
      *
      * The value is encrypted via CategoryLockCrypto and protected with Android KeyStore; it is persisted under a private preference key to avoid inclusion in backups.
      *
-     * @return The decrypted master PIN, or an empty string if not set.
+     * @return The encrypted master PIN value, or an empty string if not set.
+     *         Use [CategoryLockCrypto] to decrypt before comparison.
      */
     fun categoryLockMasterPin() = preferenceStore.getString(
         Preference.privateKey("category_lock_master_pin"),
