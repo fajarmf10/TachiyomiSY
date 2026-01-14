@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import tachiyomi.data.DatabaseHandler
 import tachiyomi.domain.download.model.DownloadErrorType
-import tachiyomi.domain.download.model.DownloadPriority
 import tachiyomi.domain.download.model.DownloadQueueEntry
 import tachiyomi.domain.download.model.DownloadQueueStatus
 import tachiyomi.domain.download.model.toDownloadQueueEntry
@@ -19,7 +18,7 @@ class DownloadQueueRepositoryImpl(
 
     override suspend fun getPendingByPriority(): List<DownloadQueueEntry> {
         return handler.awaitList {
-            download_queueQueries.getPendingByPriority()
+            download_queueQueries.getPendingByPriority().executeAsList()
         }.map { it.toDownloadQueueEntry() }
     }
 
@@ -44,25 +43,25 @@ class DownloadQueueRepositoryImpl(
 
     override suspend fun getAll(): List<DownloadQueueEntry> {
         return handler.awaitList {
-            download_queueQueries.getAll()
+            download_queueQueries.getAll().executeAsList()
         }.map { it.toDownloadQueueEntry() }
     }
 
     override fun getAllAsFlow(): Flow<List<DownloadQueueEntry>> {
         return handler.subscribeToList {
-            download_queueQueries.getAll()
+            download_queueQueries.getAll().executeAsList()
         }.map { list -> list.map { it.toDownloadQueueEntry() } }
     }
 
     override suspend fun getByChapterId(chapterId: Long): DownloadQueueEntry? {
         return handler.awaitOneOrNull {
-            download_queueQueries.getByChapterId(chapterId)
+            download_queueQueries.getByChapterId(chapterId).executeAsOneOrNull()
         }?.toDownloadQueueEntry()
     }
 
     override suspend fun getByMangaId(mangaId: Long): List<DownloadQueueEntry> {
         return handler.awaitList {
-            download_queueQueries.getByMangaId(mangaId)
+            download_queueQueries.getByMangaId(mangaId).executeAsList()
         }.map { it.toDownloadQueueEntry() }
     }
 
@@ -74,7 +73,7 @@ class DownloadQueueRepositoryImpl(
                 priority = priority.toLong(),
                 addedAt = System.currentTimeMillis(),
             )
-            download_queueQueries.getByChapterId(chapterId)
+            download_queueQueries.getByChapterId(chapterId).executeAsOneOrNull()
         }?._id
     }
 
@@ -201,7 +200,7 @@ class DownloadQueueRepositoryImpl(
 
     override suspend fun countByStatus(status: DownloadQueueStatus): Long {
         return handler.awaitOne {
-            download_queueQueries.countByStatus(status.value)
+            download_queueQueries.countByStatus(status.value).executeAsOne()
         }
     }
 
