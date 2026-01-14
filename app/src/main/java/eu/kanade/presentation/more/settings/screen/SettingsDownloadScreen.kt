@@ -303,7 +303,6 @@ object SettingsDownloadScreen : SearchableSettings {
     ): Preference.PreferenceGroup {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
-        val cleanupOnStartup by downloadPreferences.cleanupOrphanedFoldersOnStartup().collectAsState()
 
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_storage_cleanup),
