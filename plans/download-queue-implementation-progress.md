@@ -74,6 +74,7 @@ The project uses **SQLDelight** which generates Kotlin code from `.sq` files dur
 4. ✅ **SQLDelight type inference** - Added `CAST(strftime() AS INTEGER)` for thresholdMillis parameter
 5. ✅ **DI binding** - Registered DownloadQueueRepository in DomainModule
 6. ✅ **Missing preferences** - All 5 new preferences added to DownloadPreferences.kt
+7. ✅ **Database migration** - Created migration 38.sqm to create download_queue table (fixes "no such table" crash)
 
 ### Commits made:
 - `f07609ff1` - Phase 1-2 implementation (690+ lines)
@@ -82,6 +83,7 @@ The project uses **SQLDelight** which generates Kotlin code from `.sq` files dur
 - `d3544216c` - Remove toDownloadQueueEntry extension
 - `e0966e722` - Register DownloadQueueRepository in DI
 - `c975ee66b` - Fix SQLDelight type inference
+- `0556c2a3e` - Add database migration 38.sqm (fixes runtime crash)
 
 ---
 
