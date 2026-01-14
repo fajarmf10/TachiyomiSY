@@ -2,6 +2,7 @@ plugins {
     id("mihon.library")
     kotlin("android")
     kotlin("plugin.serialization")
+    id("mihon.code.coverage")
 }
 
 android {
