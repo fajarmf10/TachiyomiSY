@@ -996,6 +996,7 @@ class LibraryScreenModel(
      * @param query The textual search query; may be null or blank to skip filtering.
      * @param loggedInTrackServices Map of tracker service IDs to their TriState filter values used when evaluating tracking-related query components.
      * @return A list containing only the LibraryItem values from `unfiltered` that match the provided query and tracking filters.
+     */
     private suspend fun filterLibrary(
         unfiltered: List<LibraryItem>,
         query: String?,
@@ -1024,7 +1025,8 @@ class LibraryScreenModel(
             // Check if cache is valid, otherwise rebuild it
             val currentCache = metadataCache
             val cache = if (currentCache != null &&
-                           currentCache.mangaIds == metadataSourceMangaIds.toSet()) {
+                currentCache.mangaIds == metadataSourceMangaIds.toSet()
+            ) {
                 currentCache
             } else {
                 // Rebuild cache with batch queries
@@ -1284,7 +1286,7 @@ class LibraryScreenModel(
      * The provided `index` is written into state, then the state's `coercedActiveCategoryIndex` (validated within bounds)
      * is saved to `libraryPreferences.lastUsedCategory()`.
      *
-     * @param index The desired active category index (zero-based); the persisted value is the state's coerced index. 
+     * @param index The desired active category index (zero-based); the persisted value is the state's coerced index.
      */
     fun updateActiveCategoryIndex(index: Int) {
         val newIndex = mutableState.updateAndGet { state ->
@@ -1358,6 +1360,7 @@ class LibraryScreenModel(
     fun isCategoryUnlocked(categoryId: Long): Boolean {
         return CategoryLockManager.isUnlocked(categoryId)
     }
+
     /**
      * Opens the "Change Category" dialog for the current selection and populates it with preselected category states.
      *

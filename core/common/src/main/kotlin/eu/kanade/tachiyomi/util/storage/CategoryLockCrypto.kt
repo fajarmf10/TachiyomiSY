@@ -73,19 +73,15 @@ object CategoryLockCrypto {
      * user authentication.
      *
      * @return The newly generated `SecretKey` placed in the AndroidKeyStore.
+     */
     private fun generateKey(): SecretKey {
         return KeyGenerator.getInstance(ALGORITHM).apply {
             init(
                 KeyGenParameterSpec.Builder(
                     ALIAS_CATEGORY_PIN,
                     KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-                )
-                    .setKeySize(KEY_SIZE)
-                    .setBlockModes(BLOCK_MODE)
-                    .setEncryptionPaddings(PADDING)
-                    .setRandomizedEncryptionRequired(true)
-                    .setUserAuthenticationRequired(false)
-                    .build(),
+                ).setKeySize(KEY_SIZE).setBlockModes(BLOCK_MODE).setEncryptionPaddings(PADDING)
+                    .setRandomizedEncryptionRequired(true).setUserAuthenticationRequired(false).build(),
             )
         }.generateKey()
     }
@@ -94,7 +90,8 @@ object CategoryLockCrypto {
      * Produces a Base64-encoded AES-CBC ciphertext of the given PIN with the initialization vector (IV) prefixed.
      *
      * @param pin The plaintext PIN to encrypt.
-     * @return The encrypted PIN as a Base64 string where the IV is stored at the beginning of the decoded bytes. */
+     * @return The encrypted PIN as a Base64 string where the IV is stored at the beginning of the decoded bytes.
+     */
     private fun encryptPin(pin: String): String {
         val cipher = encryptionCipher
         val outputStream = ByteArrayOutputStream()

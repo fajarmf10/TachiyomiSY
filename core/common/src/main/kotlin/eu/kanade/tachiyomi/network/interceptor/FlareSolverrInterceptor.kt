@@ -42,7 +42,7 @@ class FlareSolverrInterceptor(
      *
      * @return The response to use for the request: the original response if no challenge was detected
      * or the response from the retried request after a successful FlareSolverr solve.
-     * @throws IOException If solving the Cloudflare challenge fails; the original error is wrapped. 
+     * @throws IOException If solving the Cloudflare challenge fails; the original error is wrapped.
      */
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
@@ -278,6 +278,7 @@ class FlareSolverrInterceptor(
          * @param cookie The FlareSolverr solution cookie containing `name`, `value`, `path`, `expires`, `httpOnly`, and `secure`.
          * @param domain The domain value to use for the cookie's `Domain` attribute.
          * @return A formatted cookie header string suitable for use in an HTTP `Cookie` header.
+         **/
         private fun buildCookieString(cookie: FlareSolverSolutionCookie, domain: String): String {
             val formatter = DateTimeFormatter.RFC_1123_DATE_TIME
             val expires = if (cookie.expires != null && cookie.expires > 0) {

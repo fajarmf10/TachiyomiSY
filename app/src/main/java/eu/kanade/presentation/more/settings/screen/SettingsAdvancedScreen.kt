@@ -268,6 +268,7 @@ object SettingsAdvancedScreen : SearchableSettings {
      * @param networkPreferences Preferences provider used to read and persist network-related settings
      *        (DoH provider, user agent, FlareSolverr settings, and related flags).
      * @return A PreferenceGroup with network-related preference items.
+     */
     @Composable
     private fun getNetworkGroup(
         networkPreferences: NetworkPreferences,
@@ -365,7 +366,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = enableFlareSolverrPref,
                     title = stringResource(MR.strings.pref_enable_flare_solverr),
-                    subtitle = stringResource(MR.strings.pref_enable_flare_solverr_summary)
+                    subtitle = stringResource(MR.strings.pref_enable_flare_solverr_summary),
                 ),
                 Preference.PreferenceItem.EditTextPreference(
                     preference = flareSolverrUrlPref,
@@ -389,7 +390,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                             testFlareSolverrAndUpdateUserAgent(flareSolverrUrlPref, userAgentPref, context)
                         }
                     },
-                )
+                ),
             ),
         )
     }
@@ -718,7 +719,7 @@ object SettingsAdvancedScreen : SearchableSettings {
 //                ),
 //            ),
 //        )
-/**
+    /**
      * Creates the "Data Saver" preference group that exposes settings for source data-saver behavior.
      *
      * The group contains preferences for selecting the data-saver mode, configuring the Bandwidth Hero
@@ -948,7 +949,7 @@ object SettingsAdvancedScreen : SearchableSettings {
     private suspend fun testFlareSolverrAndUpdateUserAgent(
         flareSolverrUrlPref: BasePreference<String>,
         userAgentPref: BasePreference<String>,
-        context: android.content.Context
+        context: android.content.Context,
     ) {
         val networkHelper: NetworkHelper by injectLazy()
         val json: Json by injectLazy()
@@ -1051,9 +1052,11 @@ object SettingsAdvancedScreen : SearchableSettings {
                     e is java.net.UnknownHostException -> {
                         "DNS error: Cannot resolve hostname. Try disabling DNS-over-HTTPS in Advanced settings, or check your network connection."
                     }
+
                     e.message?.contains("timeout", ignoreCase = true) == true -> {
                         "Timeout: FlareSolverr took too long to respond. Check if the server is running and accessible."
                     }
+
                     else -> "FlareSolverr error: ${e.message ?: "Unknown error"}"
                 }
                 context.toast(errorMsg)
