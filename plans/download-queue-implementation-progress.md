@@ -2,7 +2,7 @@
 
 ## Status: ALL PHASES COMPLETE ✅ (Ready to Test)
 
-**Last Updated:** 2026-01-14 (OpenAI Codex completed Phase 3-6)
+**Last Updated:** 2026-01-14 (All phases implemented and fixed)
 
 ---
 
@@ -138,7 +138,7 @@ The project uses **SQLDelight** which generates Kotlin code from `.sq` files dur
 
 ## 🔧 All Issues Fixed ✅
 
-### Fixed in this session:
+### Phase 1-2 Fixes (Foundation):
 1. ✅ **Wrong logcat import** - Changed to `tachiyomi.core.common.util.system.logcat`
 2. ✅ **Type inference issues** - Used proper mapper pattern like TrackRepositoryImpl
 3. ✅ **Domain module architecture** - Removed `toDownloadQueueEntry()` extension (violated clean architecture)
@@ -146,6 +146,13 @@ The project uses **SQLDelight** which generates Kotlin code from `.sq` files dur
 5. ✅ **DI binding** - Registered DownloadQueueRepository in DomainModule
 6. ✅ **Missing preferences** - All 5 new preferences added to DownloadPreferences.kt
 7. ✅ **Database migration** - Created migration 38.sqm to create download_queue table (fixes "no such table" crash)
+
+### Phase 3-6 Fixes (Post-Implementation Review):
+8. ✅ **ReaderViewModel backwards logic** - Removed download check that blocked auto-download (line 633)
+9. ✅ **GetChaptersForAutoDownload syntax** - Fixed `emptyList` to `emptyList()`
+10. ✅ **AutoDownloadPollingWorker network** - Changed from NOT_REQUIRED to respect WiFi preference
+11. ✅ **AutoDownloadPollingWorker priorities** - Use queue repository with NORMAL priority instead of direct download
+12. ✅ **Error classification** - Added disk space detection (space/disk/storage/enospc keywords)
 
 ### Commits made:
 - `f07609ff1` - Phase 1-2 implementation (690+ lines)
@@ -155,42 +162,8 @@ The project uses **SQLDelight** which generates Kotlin code from `.sq` files dur
 - `e0966e722` - Register DownloadQueueRepository in DI
 - `c975ee66b` - Fix SQLDelight type inference
 - `0556c2a3e` - Add database migration 38.sqm (fixes runtime crash)
-
----
-
-## 🚧 Remaining Work (Phase 3-6)
-
-### Phase 3: Smart Auto-Download Polling
-**Goal:** Auto-download based on reading history (not just reader triggers)
-- [ ] Phase 3.1: Create `GetChaptersForAutoDownload.kt` interactor
-- [ ] Phase 3.2: Create `AutoDownloadPollingWorker.kt`
-- [ ] Phase 3.3: Fix `ReaderViewModel.kt:623` - remove download requirement
-- [ ] Phase 3.4: Initialize polling worker in `App.kt`
-
-### Phase 4: Temp Folder Cleanup
-**Goal:** Clean up orphaned `_tmp` folders (can reach 1GB+)
-- [ ] Phase 4.1: Add `cleanupOrphanedTempFolders()` to Downloader.kt
-- [ ] Phase 4.2: Call cleanup in Downloader init (app startup)
-- [ ] Phase 4.3: Delete stale temp before creating new one (line ~366)
-- [ ] Phase 4.4: Create `TempFolderCleanupWorker.kt` for daily cleanup
-
-### Phase 5: Enhanced Error Handling
-**Goal:** Smart retry logic with error classification
-- [ ] Phase 5.1: Use `DownloadErrorType` enum to classify errors
-- [ ] Phase 5.2: Update Downloader to call `recordFailure()` with error type
-- [ ] Phase 5.3: Non-retryable errors (DISK_FULL, CHAPTER_NOT_FOUND) auto-remove from queue
-
-### Phase 6: Preferences & UI
-**Goal:** User controls for all new features
-- [ ] Phase 6.1: Update `SettingsDownloadScreen.kt` - add UI sections:
-  - Download Queue (worker interval, max retries)
-  - Auto-Download Advanced (reading history settings)
-  - Storage Cleanup (startup cleanup toggle, manual cleanup button)
-- [ ] Phase 6.2: Add string resources for new settings
-- [ ] Phase 6.3: Initialize periodic worker in `App.kt` onCreate()
-
-### Phase 2 Remaining: Worker Initialization
-- [ ] Phase 2.3: Call `DownloadJob.setupPeriodicWork(context)` in `App.kt` onCreate()
+- `de94b3d45` - Update progress: add database migration fix
+- `91b9fee7d` - Fix 5 critical issues in Phase 3-6 implementation
 
 ---
 
@@ -214,14 +187,29 @@ The project uses **SQLDelight** which generates Kotlin code from `.sq` files dur
 
 ---
 
-## 🎯 Next Steps (When Resuming)
+## 🎯 Testing Checklist
 
-1. **Fix linter errors** (see Known Issues)
-2. **Add minimal preferences** (downloadWorkerInterval, autoDownloadMaxRetries)
-3. **Setup DI binding** for DownloadQueueRepository
-4. **Test compilation** and fix any SQLDelight generation issues
-5. **Test migration** from SharedPreferences to database
-6. **Continue with Phase 3** (Auto-download polling)
+### Build & Run:
+1. **Build in Android Studio** (Cmd+F9) - Generate SQLDelight code
+2. **Run on device** - Database migration 38 will create table
+3. **Check logs** for migration success message
+
+### Feature Testing:
+1. **Queue Persistence**: Add downloads → Kill app → Restart → Verify queue restored
+2. **Auto-Download (Reader)**: Read online chapter → Verify next chapters queued (no longer requires current chapter downloaded)
+3. **Auto-Download (History)**: Enable in settings → Read manga → Wait 6 hours → Check if next chapters queued
+4. **Temp Cleanup**: Check storage → Run manual cleanup → Verify freed space
+5. **Error Handling**: Fill disk → Attempt download → Verify "Disk Full" error, no retries
+6. **Worker Intervals**: Change settings → Verify workers reschedule correctly
+7. **WiFi Constraint**: Enable WiFi-only → Turn off WiFi → Verify downloads pause
+
+### Settings to Configure:
+- Settings → Downloads → Download Queue → Worker Interval (default: 15 min)
+- Settings → Downloads → Download Queue → Max Retries (default: 5)
+- Settings → Downloads → Auto-Download Advanced → Enable reading history downloads
+- Settings → Downloads → Auto-Download Advanced → Lookback days (default: 7)
+- Settings → Downloads → Storage Cleanup → Cleanup on startup (default: enabled)
+- Settings → Downloads → Storage Cleanup → "Clean up temp folders now" button
 
 ---
 
