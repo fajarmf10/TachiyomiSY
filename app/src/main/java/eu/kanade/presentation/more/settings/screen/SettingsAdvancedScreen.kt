@@ -107,6 +107,9 @@ import tachiyomi.core.common.preference.Preference as BasePreference
 
 object SettingsAdvancedScreen : SearchableSettings {
 
+    private val networkHelper: NetworkHelper by injectLazy()
+    private val json: Json by injectLazy()
+
     @ReadOnlyComposable
     @Composable
     override fun getTitleRes() = MR.strings.pref_category_advanced
@@ -879,8 +882,6 @@ object SettingsAdvancedScreen : SearchableSettings {
         userAgentPref: BasePreference<String>,
         context: android.content.Context,
     ) {
-        val networkHelper: NetworkHelper by injectLazy()
-        val json: Json by injectLazy()
         val jsonMediaType = "application/json".toMediaType()
 
         try {
