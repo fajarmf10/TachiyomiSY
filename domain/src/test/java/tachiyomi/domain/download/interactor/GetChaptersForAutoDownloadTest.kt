@@ -36,6 +36,18 @@ class GetChaptersForAutoDownloadTest {
 
     @BeforeEach
     fun setup() {
+        // Initialize Koin for HistoryWithRelations dependency injection
+        val mockGetCustomMangaInfo = mockk<GetCustomMangaInfo>()
+        every { mockGetCustomMangaInfo.get(any()) } returns null
+
+        startKoin {
+            modules(
+                module {
+                    single { mockGetCustomMangaInfo }
+                },
+            )
+        }
+
         historyRepository = mockk()
         getManga = mockk()
         getNextChapters = mockk()
@@ -46,6 +58,11 @@ class GetChaptersForAutoDownloadTest {
             getNextChapters = getNextChapters,
             downloadPreferences = downloadPreferences,
         )
+    }
+
+    @AfterEach
+    fun tearDown() {
+        stopKoin()
     }
 
     @Test

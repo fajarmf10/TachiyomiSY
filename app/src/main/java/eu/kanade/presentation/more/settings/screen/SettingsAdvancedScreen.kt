@@ -21,7 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.window.DialogProperties
@@ -79,7 +79,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -597,7 +596,8 @@ object SettingsAdvancedScreen : SearchableSettings {
         val context = LocalContext.current
         val options = remember { context.resources.getStringArray(R.array.clean_up_downloads).toList() }
         val selection = remember {
-            options.toMutableStateList()
+            // Option 0 is always required and shown as checked via the UI logic.
+            mutableStateListOf(options[1], options[2])
         }
         AlertDialog(
             onDismissRequest = onDismissRequest,
@@ -642,81 +642,7 @@ object SettingsAdvancedScreen : SearchableSettings {
         )
     }
 
-//    @Composable
-//    private fun getDownloaderGroup(): Preference.PreferenceGroup {
-//        val scope = rememberCoroutineScope()
-//        val context = LocalContext.current
-//        var dialogOpen by remember { mutableStateOf(false) }
-//        if (dialogOpen) {
-//            CleanupDownloadsDialog(
-//                onDismissRequest = { dialogOpen = false },
-//                onCleanupDownloads = { removeRead, removeNonFavorite ->
-//                    dialogOpen = false
-//                    if (job?.isActive == true) return@CleanupDownloadsDialog
-//                    context.toast(SYMR.strings.starting_cleanup)
-//                    job = scope.launchNonCancellable {
-//                        val mangaList = Injekt.get<GetAllManga>().await()
-//                        val downloadManager: DownloadManager = Injekt.get()
-//                        var foldersCleared = 0
-//                        Injekt.get<SourceManager>().getOnlineSources().forEach { source ->
-//                            val mangaFolders = downloadManager.getMangaFolders(source)
-//                            val sourceManga = mangaList
-//                                .asSequence()
-//                                .filter { it.source == source.id }
-//                                .map { it to DiskUtil.buildValidFilename(it.ogTitle) }
-//                                .toList()
-//
-//                            mangaFolders.forEach mangaFolder@{ mangaFolder ->
-//                                val manga =
-//                                    sourceManga.find { (_, folderName) ->
-//                                        folderName == mangaFolder.name
-//                                    }?.first
-//                                if (manga == null) {
-//                                    // download is orphaned delete it
-//                                    foldersCleared += 1 + (
-//                                        mangaFolder.listFiles()
-//                                            .orEmpty().size
-//                                        )
-//                                    mangaFolder.delete()
-//                                } else {
-//                                    val chapterList = Injekt.get<GetChaptersByMangaId>().await(manga.id)
-//                                    foldersCleared += downloadManager.cleanupChapters(
-//                                        chapterList,
-//                                        manga,
-//                                        source,
-//                                        removeRead,
-//                                        removeNonFavorite,
-//                                    )
-//                                }
-//                            }
-//                        }
-//                        withUIContext {
-//                            val cleanupString =
-//                                if (foldersCleared == 0) {
-//                                    context.stringResource(SYMR.strings.no_folders_to_cleanup)
-//                                } else {
-//                                    context.pluralStringResource(
-//                                        SYMR.plurals.cleanup_done,
-//                                        foldersCleared,
-//                                        foldersCleared,
-//                                    )
-//                                }
-//                            context.toast(cleanupString, Toast.LENGTH_LONG)
-//                        }
-//                    }
-//                },
-//            )
-//        }
-//        return Preference.PreferenceGroup(
-//            title = stringResource(MR.strings.download_notifier_downloader_title),
-//            preferenceItems = persistentListOf(
-//                Preference.PreferenceItem.TextPreference(
-//                    title = stringResource(SYMR.strings.clean_up_downloaded_chapters),
-//                    subtitle = stringResource(SYMR.strings.delete_unused_chapters),
-//                    onClick = { dialogOpen = true },
-//                ),
-//            ),
-//        )
+// TODO: Re-enable getDownloaderGroup() for download cleanup feature.
 
     /**
      * Creates the "Data Saver" preference group that exposes settings for source data-saver behavior.
@@ -1062,6 +988,5 @@ object SettingsAdvancedScreen : SearchableSettings {
         }
     }
 
-    private var job: Job? = null
     // SY <--
 }

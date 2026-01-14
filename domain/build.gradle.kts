@@ -40,5 +40,7 @@ dependencies {
 
     testImplementation(libs.bundles.test)
     testImplementation(kotlinx.coroutines.test)
+    testImplementation(libs.injekt)
+    testImplementation("io.insert-koin:koin-test:4.1.1")
     testRuntimeOnly(libs.junit.platform.launcher)
 }

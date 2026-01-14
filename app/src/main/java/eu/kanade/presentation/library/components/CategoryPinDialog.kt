@@ -25,7 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -219,18 +218,7 @@ fun CategoryPinDialog(
                             } else {
                                 errorMessage = pinRequirementText
                                 coroutineScope.launch {
-                                    shakeOffset.animateTo(
-                                        targetValue = 10f,
-                                        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-                                    )
-                                    shakeOffset.animateTo(
-                                        targetValue = -10f,
-                                        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-                                    )
-                                    shakeOffset.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-                                    )
+                                    shakeOffset.shake()
                                 }
                             }
                         } else {
@@ -249,9 +237,7 @@ fun CategoryPinDialog(
                                 errorMessage = pinsMismatchText
                                 confirmPin = ""
                                 coroutineScope.launch {
-                                    shakeOffset.animateTo(10f, spring(stiffness = Spring.StiffnessHigh))
-                                    shakeOffset.animateTo(-10f, spring(stiffness = Spring.StiffnessHigh))
-                                    shakeOffset.animateTo(0f, spring(stiffness = Spring.StiffnessHigh))
+                                    shakeOffset.shake()
                                 }
                             }
                         }
@@ -265,9 +251,7 @@ fun CategoryPinDialog(
                                 errorMessage = wrongPinText
                                 pin = ""
                                 coroutineScope.launch {
-                                    shakeOffset.animateTo(10f, spring(stiffness = Spring.StiffnessHigh))
-                                    shakeOffset.animateTo(-10f, spring(stiffness = Spring.StiffnessHigh))
-                                    shakeOffset.animateTo(0f, spring(stiffness = Spring.StiffnessHigh))
+                                    shakeOffset.shake()
                                 }
                             }
                         }
@@ -336,5 +320,11 @@ private fun NumberButton(
             style = MaterialTheme.typography.headlineMedium,
         )
     }
+}
+
+private suspend fun Animatable<Float, *>.shake() {
+    animateTo(10f, spring(stiffness = Spring.StiffnessHigh))
+    animateTo(-10f, spring(stiffness = Spring.StiffnessHigh))
+    animateTo(0f, spring(stiffness = Spring.StiffnessHigh))
 }
 // SY <--

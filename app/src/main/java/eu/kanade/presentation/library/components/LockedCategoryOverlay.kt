@@ -26,6 +26,7 @@ import tachiyomi.presentation.core.i18n.stringResource
  * Displays a centered overlay indicating a category is locked and provides an unlock action.
  *
  * @param onUnlockClick Callback invoked when the user taps the "Unlock" button.
+ * @param modifier Optional [Modifier] for customizing the layout.
  */
 @Composable
 fun LockedCategoryOverlay(

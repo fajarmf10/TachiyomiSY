@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -54,7 +55,7 @@ internal fun LibraryTabs(
                     onClick = { onTabItemClick(index) },
                     text = {
                         // SY -->
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             if (isCategoryLocked(category)) {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
