@@ -133,12 +133,20 @@ class Downloader(
 
     init {
         launchNow {
-            val chapters = store.restore()
-            addAllToQueue(chapters)
+            try {
+                val chapters = store.restore()
+                addAllToQueue(chapters)
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR, e) { "Failed to restore download queue" }
+            }
         }
         if (downloadPreferences.cleanupOrphanedFoldersOnStartup().get()) {
             launchNow {
-                TempFolderCleanupWorker.cleanupOrphanedTempFolders()
+                try {
+                    TempFolderCleanupWorker.cleanupOrphanedTempFolders()
+                } catch (e: Exception) {
+                    logcat(LogPriority.ERROR, e) { "Failed to cleanup orphaned temp folders" }
+                }
             }
         }
     }
