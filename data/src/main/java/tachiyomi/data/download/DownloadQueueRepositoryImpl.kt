@@ -18,8 +18,8 @@ class DownloadQueueRepositoryImpl(
 
     override suspend fun getPendingByPriority(): List<DownloadQueueEntry> {
         return handler.awaitList {
-            download_queueQueries.getPendingByPriority().executeAsList()
-        }.map { it.toDownloadQueueEntry() }
+            download_queueQueries.getPendingByPriority(mapper = ::mapDownloadQueueEntry)
+        }
     }
 
     override suspend fun getPendingWithBackoff(): List<DownloadQueueEntry> {
@@ -43,26 +43,26 @@ class DownloadQueueRepositoryImpl(
 
     override suspend fun getAll(): List<DownloadQueueEntry> {
         return handler.awaitList {
-            download_queueQueries.getAll().executeAsList()
-        }.map { it.toDownloadQueueEntry() }
+            download_queueQueries.getAll(mapper = ::mapDownloadQueueEntry)
+        }
     }
 
     override fun getAllAsFlow(): Flow<List<DownloadQueueEntry>> {
         return handler.subscribeToList {
-            download_queueQueries.getAll().executeAsList()
-        }.map { list -> list.map { it.toDownloadQueueEntry() } }
+            download_queueQueries.getAll(mapper = ::mapDownloadQueueEntry)
+        }
     }
 
     override suspend fun getByChapterId(chapterId: Long): DownloadQueueEntry? {
         return handler.awaitOneOrNull {
-            download_queueQueries.getByChapterId(chapterId).executeAsOneOrNull()
-        }?.toDownloadQueueEntry()
+            download_queueQueries.getByChapterId(chapterId, mapper = ::mapDownloadQueueEntry)
+        }
     }
 
     override suspend fun getByMangaId(mangaId: Long): List<DownloadQueueEntry> {
         return handler.awaitList {
-            download_queueQueries.getByMangaId(mangaId).executeAsList()
-        }.map { it.toDownloadQueueEntry() }
+            download_queueQueries.getByMangaId(mangaId, mapper = ::mapDownloadQueueEntry)
+        }
     }
 
     override suspend fun add(mangaId: Long, chapterId: Long, priority: Int): Long? {
@@ -73,8 +73,8 @@ class DownloadQueueRepositoryImpl(
                 priority = priority.toLong(),
                 addedAt = System.currentTimeMillis(),
             )
-            download_queueQueries.getByChapterId(chapterId).executeAsOneOrNull()
-        }?._id
+            download_queueQueries.getByChapterId(chapterId, mapper = ::mapDownloadQueueEntry)
+        }?.id
     }
 
     override suspend fun addAll(entries: List<Pair<Long, Long>>, priority: Int) {
@@ -113,16 +113,18 @@ class DownloadQueueRepositoryImpl(
         errorType: DownloadErrorType,
     ) {
         handler.await {
-            val entry = download_queueQueries.getByChapterId(chapterId).executeAsOneOrNull()
-                ?: return@await
+            val entry = download_queueQueries.getByChapterId(
+                chapterId,
+                mapper = ::mapDownloadQueueEntry,
+            ).executeAsOneOrNull() ?: return@await
 
-            val newRetryCount = entry.retry_count + 1
+            val newRetryCount = entry.retryCount + 1
             val maxRetries = downloadPreferences.autoDownloadMaxRetries().get()
 
             if (!errorType.canRetry || newRetryCount > maxRetries) {
                 // Max retries exceeded or non-retryable error
                 download_queueQueries.updateStatus(
-                    id = entry._id,
+                    id = entry.id,
                     status = DownloadQueueStatus.FAILED.value,
                     lastAttemptAt = System.currentTimeMillis(),
                     lastErrorMessage = errorMessage,
@@ -130,10 +132,10 @@ class DownloadQueueRepositoryImpl(
             } else {
                 // Can retry - update for exponential backoff
                 download_queueQueries.updateForRetry(
-                    id = entry._id,
+                    id = entry.id,
                     lastAttemptAt = System.currentTimeMillis(),
                     lastErrorMessage = errorMessage,
-                    retryCount = newRetryCount,
+                    retryCount = newRetryCount.toLong(),
                 )
             }
         }
@@ -141,11 +143,13 @@ class DownloadQueueRepositoryImpl(
 
     override suspend fun markCompleted(chapterId: Long) {
         handler.await {
-            val entry = download_queueQueries.getByChapterId(chapterId).executeAsOneOrNull()
-                ?: return@await
+            val entry = download_queueQueries.getByChapterId(
+                chapterId,
+                mapper = ::mapDownloadQueueEntry,
+            ).executeAsOneOrNull() ?: return@await
 
             download_queueQueries.updateStatus(
-                id = entry._id,
+                id = entry.id,
                 status = DownloadQueueStatus.COMPLETED.value,
                 lastAttemptAt = System.currentTimeMillis(),
                 lastErrorMessage = null,
@@ -200,7 +204,7 @@ class DownloadQueueRepositoryImpl(
 
     override suspend fun countByStatus(status: DownloadQueueStatus): Long {
         return handler.awaitOne {
-            download_queueQueries.countByStatus(status.value).executeAsOne()
+            download_queueQueries.countByStatus(status.value)
         }
     }
 
@@ -208,5 +212,29 @@ class DownloadQueueRepositoryImpl(
         handler.await {
             download_queueQueries.resetStuckDownloads(thresholdMillis)
         }
+    }
+
+    private fun mapDownloadQueueEntry(
+        _id: Long,
+        manga_id: Long,
+        chapter_id: Long,
+        priority: Long,
+        added_at: Long,
+        retry_count: Long,
+        last_attempt_at: Long?,
+        last_error_message: String?,
+        status: String,
+    ): DownloadQueueEntry {
+        return DownloadQueueEntry(
+            id = _id,
+            mangaId = manga_id,
+            chapterId = chapter_id,
+            priority = priority.toInt(),
+            addedAt = added_at,
+            retryCount = retry_count.toInt(),
+            lastAttemptAt = last_attempt_at,
+            lastErrorMessage = last_error_message,
+            status = DownloadQueueStatus.fromString(status),
+        )
     }
 }
