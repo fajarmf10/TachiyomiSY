@@ -12,10 +12,11 @@ import org.junit.jupiter.api.Test
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.history.interactor.GetNextChapters
-import tachiyomi.domain.history.model.History
+import tachiyomi.domain.history.model.HistoryWithRelations
 import tachiyomi.domain.history.repository.HistoryRepository
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.manga.model.Manga
+import tachiyomi.domain.manga.model.MangaCover
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -245,7 +246,22 @@ class GetChaptersForAutoDownloadTest {
     private fun createManga(id: Long) = Manga.create().copy(id = id)
 
     private fun createHistory(mangaId: Long, chapterId: Long, readAt: Date = Date()) =
-        History.create().copy(mangaId = mangaId, chapterId = chapterId, readAt = readAt)
+        HistoryWithRelations(
+            id = 1L,
+            chapterId = chapterId,
+            mangaId = mangaId,
+            ogTitle = "Test Manga",
+            chapterNumber = 1.0,
+            readAt = readAt,
+            readDuration = 0L,
+            coverData = MangaCover(
+                mangaId = mangaId,
+                sourceId = 1L,
+                isMangaFavorite = false,
+                ogUrl = "",
+                lastModified = 0L,
+            ),
+        )
 
     private fun createChapter(id: Long, mangaId: Long, number: Double) =
         Chapter.create().copy(id = id, mangaId = mangaId, chapterNumber = number)

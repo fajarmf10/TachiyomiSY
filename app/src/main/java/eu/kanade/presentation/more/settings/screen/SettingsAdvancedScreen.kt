@@ -1001,45 +1001,44 @@ object SettingsAdvancedScreen : SearchableSettings {
                     .callTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
                     .build()
 
-                val response = customClient.newCall(request).execute()
-
-                if (!response.isSuccessful) {
-                    val errorBody = response.body?.string() ?: "No error details"
-                    logcat(LogPriority.ERROR, tag = "FlareSolverr") {
-                        "HTTP ${response.code}: $errorBody"
-                    }
-                    withContext(Dispatchers.Main) {
-                        val errorMsg = when (response.code) {
-                            405 -> "HTTP 405: Wrong endpoint? Make sure URL ends with /v1"
-                            else -> "FlareSolverr error: HTTP ${response.code}"
+                customClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        val errorBody = response.body?.string() ?: "No error details"
+                        logcat(LogPriority.ERROR, tag = "FlareSolverr") {
+                            "HTTP ${response.code}: $errorBody"
                         }
-                        context.toast(errorMsg)
+                        withContext(Dispatchers.Main) {
+                            val errorMsg = when (response.code) {
+                                405 -> "HTTP 405: Wrong endpoint? Make sure URL ends with /v1"
+                                else -> "FlareSolverr error: HTTP ${response.code}"
+                            }
+                            context.toast(errorMsg)
+                        }
+                        return@withContext
                     }
-                    response.close()
-                    return@withContext
-                }
 
-                val flareSolverResponse = with(json) {
-                    response.parseAs<FlareSolverrInterceptor.CFClearance.FlareSolverResponse>()
-                }
-
-                logcat(LogPriority.DEBUG, tag = "FlareSolverr") {
-                    "FlareSolverr response: status=${flareSolverResponse.status}, solution.status=${flareSolverResponse.solution.status}"
-                }
-
-                if (flareSolverResponse.solution.status in 200..299) {
-                    // Set the user agent to the one provided by FlareSolverr
-                    userAgentPref.set(flareSolverResponse.solution.userAgent)
-
-                    withContext(Dispatchers.Main) {
-                        context.toast(SYMR.strings.flare_solver_user_agent_update_success)
+                    val flareSolverResponse = with(json) {
+                        response.parseAs<FlareSolverrInterceptor.CFClearance.FlareSolverResponse>()
                     }
-                } else {
-                    logcat(LogPriority.ERROR, tag = "FlareSolverr") {
-                        "Solution failed with status: ${flareSolverResponse.solution.status}, message: ${flareSolverResponse.message}"
+
+                    logcat(LogPriority.DEBUG, tag = "FlareSolverr") {
+                        "FlareSolverr response: status=${flareSolverResponse.status}, solution.status=${flareSolverResponse.solution.status}"
                     }
-                    withContext(Dispatchers.Main) {
-                        context.toast("FlareSolverr failed: ${flareSolverResponse.message}")
+
+                    if (flareSolverResponse.solution.status in 200..299) {
+                        // Set the user agent to the one provided by FlareSolverr
+                        userAgentPref.set(flareSolverResponse.solution.userAgent)
+
+                        withContext(Dispatchers.Main) {
+                            context.toast(SYMR.strings.flare_solver_user_agent_update_success)
+                        }
+                    } else {
+                        logcat(LogPriority.ERROR, tag = "FlareSolverr") {
+                            "Solution failed with status: ${flareSolverResponse.solution.status}, message: ${flareSolverResponse.message}"
+                        }
+                        withContext(Dispatchers.Main) {
+                            context.toast("FlareSolverr failed: ${flareSolverResponse.message}")
+                        }
                     }
                 }
             }

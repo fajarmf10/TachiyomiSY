@@ -772,6 +772,8 @@
     <string name="category_lock_master_pin_change">Change master PIN</string>
     <string name="category_lock_master_pin_remove">Remove master PIN</string>
     <string name="category_lock_master_pin_removed">Master PIN removed</string>
+    <string name="category_lock_error_setting_master_pin">Error setting master PIN</string>
+    <string name="category_lock_error_setting_pin">Error setting PIN</string>
     <string name="action_unlock">Unlock</string>
     <string name="action_next">Next</string>
 </resources>

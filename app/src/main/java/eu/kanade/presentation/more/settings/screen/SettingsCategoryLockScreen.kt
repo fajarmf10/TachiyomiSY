@@ -68,7 +68,12 @@ object SettingsCategoryLockScreen : SearchableSettings {
                                         showMasterPinDialog = false
                                         true
                                     } catch (e: Exception) {
-                                        context.toast(e.message ?: "Error setting master PIN")
+                                        context.toast(
+                                            e.message
+                                                ?: context.stringResource(
+                                                    SYMR.strings.category_lock_error_setting_master_pin,
+                                                ),
+                                        )
                                         false
                                     }
                                 },
@@ -120,7 +125,12 @@ object SettingsCategoryLockScreen : SearchableSettings {
                                             showPinDialog = false
                                             true
                                         } catch (e: Exception) {
-                                            context.toast(e.message ?: "Error setting PIN")
+                                            context.toast(
+                                                e.message
+                                                    ?: context.stringResource(
+                                                        SYMR.strings.category_lock_error_setting_pin,
+                                                    ),
+                                            )
                                             false
                                         }
                                     },
