@@ -9,6 +9,8 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import logcat.LogPriority
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.download.interactor.GetChaptersForAutoDownload
 import tachiyomi.domain.download.model.DownloadPriority
 import tachiyomi.domain.download.repository.DownloadQueueRepository
@@ -30,19 +32,24 @@ class AutoDownloadPollingWorker(
     override suspend fun doWork(): Result {
         if (!downloadPreferences.autoDownloadFromReadingHistory().get()) return Result.success()
 
-        val targets = getChaptersForAutoDownload.await()
-        targets.forEach { (manga, chapters) ->
-            // Use queue repository with NORMAL priority for reading history downloads
-            val entries = chapters.map { chapter -> manga.id to chapter.id }
-            downloadQueueRepository.addAll(entries, DownloadPriority.NORMAL.value)
-        }
+        return try {
+            val targets = getChaptersForAutoDownload.await()
 
-        // Start the download manager if it's not already running
-        if (targets.isNotEmpty()) {
-            downloadManager.startDownloads()
-        }
+            // Collect ALL entries first, then add in one batch (more efficient!)
+            val allEntries = targets.flatMap { (manga, chapters) ->
+                chapters.map { chapter -> manga.id to chapter.id }
+            }
 
-        return Result.success()
+            if (allEntries.isNotEmpty()) {
+                downloadQueueRepository.addAll(allEntries, DownloadPriority.NORMAL.value)
+                downloadManager.startDownloads()
+            }
+
+            Result.success()
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR) { "Failed to auto-download chapters: ${e.message}" }
+            Result.retry()
+        }
     }
 
     companion object {
