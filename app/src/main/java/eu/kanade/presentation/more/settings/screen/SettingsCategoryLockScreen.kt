@@ -57,6 +57,7 @@ object SettingsCategoryLockScreen : SearchableSettings {
                 preferenceItems = listOf(
                     kotlin.run {
                         var showMasterPinDialog by remember { mutableStateOf(false) }
+                        val errorSettingMasterPin = stringResource(SYMR.strings.category_lock_error_setting_master_pin)
                         if (showMasterPinDialog) {
                             CategoryPinDialog(
                                 categoryName = stringResource(SYMR.strings.category_lock_master_pin),
@@ -68,12 +69,7 @@ object SettingsCategoryLockScreen : SearchableSettings {
                                         showMasterPinDialog = false
                                         true
                                     } catch (e: Exception) {
-                                        context.toast(
-                                            e.message
-                                                ?: stringResource(
-                                                    SYMR.strings.category_lock_error_setting_master_pin,
-                                                ),
-                                        )
+                                        context.toast(e.message ?: errorSettingMasterPin)
                                         false
                                     }
                                 },
@@ -114,6 +110,7 @@ object SettingsCategoryLockScreen : SearchableSettings {
                         kotlin.run {
                             val isLocked = CategoryLockCrypto.hasLock(category.id)
                             var showPinDialog by remember { mutableStateOf(false) }
+                            val errorSettingPin = stringResource(SYMR.strings.category_lock_error_setting_pin)
                             if (showPinDialog) {
                                 CategoryPinDialog(
                                     categoryName = category.name,
@@ -125,12 +122,7 @@ object SettingsCategoryLockScreen : SearchableSettings {
                                             showPinDialog = false
                                             true
                                         } catch (e: Exception) {
-                                            context.toast(
-                                                e.message
-                                                    ?: stringResource(
-                                                        SYMR.strings.category_lock_error_setting_pin,
-                                                    ),
-                                            )
+                                            context.toast(e.message ?: errorSettingPin)
                                             false
                                         }
                                     },
