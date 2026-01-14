@@ -19,7 +19,9 @@ object CategoryLockManager {
     private val unlockTimestamps = ConcurrentHashMap<Long, Long>()
 
     /**
-     * Check if a category is currently unlocked in this session
+     * Determines whether the given category is unlocked for the current session, after enforcing lock timeouts.
+     *
+     * @return `true` if the category is unlocked in the current session, `false` otherwise.
      */
     fun isUnlocked(categoryId: Long): Boolean {
         checkTimeouts()
@@ -27,7 +29,9 @@ object CategoryLockManager {
     }
 
     /**
-     * Mark a category as unlocked for this session
+     * Marks the given category as unlocked for the current session and records the unlock timestamp.
+     *
+     * @param categoryId The ID of the category to unlock.
      */
     fun unlock(categoryId: Long) {
         unlockedCategories.add(categoryId)
@@ -35,7 +39,9 @@ object CategoryLockManager {
     }
 
     /**
-     * Lock a specific category (remove from unlocked set)
+     * Locks the specified category for the current session by clearing its unlocked state.
+     *
+     * @param categoryId The ID of the category to lock.
      */
     fun lock(categoryId: Long) {
         unlockedCategories.remove(categoryId)
@@ -43,7 +49,9 @@ object CategoryLockManager {
     }
 
     /**
-     * Lock all categories
+     * Clears all session unlock state for categories.
+     *
+     * Removes all unlocked category IDs and their associated unlock timestamps so all categories become locked for the session.
      */
     fun lockAll() {
         unlockedCategories.clear()
@@ -51,7 +59,12 @@ object CategoryLockManager {
     }
 
     /**
-     * Check if any unlocked categories have exceeded the timeout and lock them
+     * Enforces category lock timeouts by re-locking categories whose unlock age exceeds the configured timeout.
+     *
+     * Reads the configured timeout in minutes from preferences:
+     * - If the value is -1, clears all unlocked state (always require PIN).
+     * - If the value is 0, leaves current unlocked state unchanged for the session.
+     * - If positive, locks any categories whose unlock timestamp is older than the configured timeout.
      */
     private fun checkTimeouts() {
         val timeoutMinutes = securityPreferences.categoryLockTimeout().get()
@@ -79,7 +92,11 @@ object CategoryLockManager {
     }
 
     /**
-     * Get all currently unlocked category IDs
+     * Provides a snapshot of category IDs currently unlocked in this session.
+     *
+     * Invokes timeout enforcement before producing the snapshot.
+     *
+     * @return A set containing the unlocked category IDs at the time of the call.
      */
     fun getUnlockedCategories(): Set<Long> {
         checkTimeouts()

@@ -185,6 +185,14 @@ object SettingsAdvancedScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Creates the Background Activity preference group used on the Advanced settings screen.
+     *
+     * The group includes a preference to request ignoring battery optimizations for the app
+     * (opens the system settings when available) and a link to the "Don't kill my app!" guide.
+     *
+     * @return A `PreferenceGroup` containing the battery optimization request and the external guide link.
+     */
     @Composable
     private fun getBackgroundActivityGroup(): Preference.PreferenceGroup {
         val context = LocalContext.current
@@ -250,6 +258,16 @@ object SettingsAdvancedScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Builds the network preference group for the advanced settings screen.
+     *
+     * Contains actions and preferences for cookie and WebView cleanup, DNS-over-HTTPS selection,
+     * user-agent editing and reset, and FlareSolverr configuration (enable toggle, URL, notifications,
+     * and a test action that can update the user-agent).
+     *
+     * @param networkPreferences Preferences provider used to read and persist network-related settings
+     *        (DoH provider, user agent, FlareSolverr settings, and related flags).
+     * @return A PreferenceGroup with network-related preference items.
     @Composable
     private fun getNetworkGroup(
         networkPreferences: NetworkPreferences,
@@ -564,7 +582,14 @@ object SettingsAdvancedScreen : SearchableSettings {
         )
     }
 
-    // SY -->
+    /**
+     * Shows a modal dialog that lets the user pick cleanup options for downloaded chapters and confirms the selection.
+     *
+     * The dialog lists options from R.array.clean_up_downloads and invokes [onCleanupDownloads] when the user confirms.
+     *
+     * @param onDismissRequest Called when the dialog should be dismissed without performing cleanup.
+     * @param onCleanupDownloads Called when the user confirms cleanup. The first boolean (`removeRead`) is true if the "remove read" option (the second entry in the resource array) was selected. The second boolean (`removeNonFavorite`) is true if the "remove non-favorite" option (the third entry in the resource array) was selected.
+     */
     @Composable
     fun CleanupDownloadsDialog(
         onDismissRequest: () -> Unit,
@@ -693,7 +718,17 @@ object SettingsAdvancedScreen : SearchableSettings {
 //                ),
 //            ),
 //        )
-//    }
+/**
+     * Creates the "Data Saver" preference group that exposes settings for source data-saver behavior.
+     *
+     * The group contains preferences for selecting the data-saver mode, configuring the Bandwidth Hero
+     * server, toggles for using the data-saver downloader and ignoring JPEG/GIF, image quality options,
+     * an image-format toggle with a dynamic subtitle, and a black-and-white color toggle. Preference
+     * enabled/disabled states reflect the current data-saver mode (for example, server and color-BW are
+     * only enabled for `Bandwidth Hero`, and most controls are disabled when the mode is `None`).
+     *
+     * @return A Preference.PreferenceGroup containing the Data Saver preferences and their configured states.
+     */
 
     @Composable
     private fun getDataSaverGroup(): Preference.PreferenceGroup {
@@ -772,6 +807,16 @@ object SettingsAdvancedScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Builds the Developer Tools preference group for the advanced settings screen.
+     *
+     * The group contains developer-focused preferences including toggles for hentai features
+     * and delegated sources, log level selection, source blacklist toggle, database
+     * encryption toggle (shows a confirmation dialog when enabling), and a shortcut to the
+     * debug menu.
+     *
+     * @return A Preference.PreferenceGroup containing the developer tools preference items.
+     */
     @Composable
     private fun getDeveloperToolsGroup(): Preference.PreferenceGroup {
         val context = LocalContext.current
@@ -889,6 +934,17 @@ object SettingsAdvancedScreen : SearchableSettings {
         )
     }
 
+    /**
+     * Tests the configured FlareSolverr endpoint and updates the stored user agent when a valid solution is returned.
+     *
+     * Attempts a request against the FlareSolverr API at the URL in [flareSolverrUrlPref]; if the service returns a successful
+     * challenge solution, stores the returned user agent into [userAgentPref]. Shows user-facing toasts for success, validation
+     * failures, HTTP errors, and network exceptions.
+     *
+     * @param flareSolverrUrlPref Preference that contains the FlareSolverr API base URL (expected to end with `/v1`).
+     * @param userAgentPref Preference to be updated with the user agent returned by FlareSolverr on success.
+     * @param context Android context used for displaying toasts.
+     */
     private suspend fun testFlareSolverrAndUpdateUserAgent(
         flareSolverrUrlPref: BasePreference<String>,
         userAgentPref: BasePreference<String>,

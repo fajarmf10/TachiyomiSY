@@ -43,17 +43,36 @@ object CategoryLockCrypto {
             init(Cipher.ENCRYPT_MODE, getKey())
         }
 
+    /**
+     * Creates and initializes a Cipher configured for AES decryption using the provided IV.
+     *
+     * @param iv The initialization vector to use for decryption; expected to be 16 bytes.
+     * @return A `Cipher` instance initialized in decrypt mode with the stored secret key and the given IV.
+     */
     private fun getDecryptCipher(iv: ByteArray): Cipher {
         return Cipher.getInstance(CRYPTO_SETTINGS).apply {
             init(Cipher.DECRYPT_MODE, getKey(), IvParameterSpec(iv))
         }
     }
 
+    /**
+     * Retrieves the SecretKey for the category PIN alias from the Android Keystore, generating and storing a new key if none exists.
+     *
+     * @return The `SecretKey` associated with the category PIN alias.
+     */
     private fun getKey(): SecretKey {
         val loadedKey = keyStore.getEntry(ALIAS_CATEGORY_PIN, null) as? KeyStore.SecretKeyEntry
         return loadedKey?.secretKey ?: generateKey()
     }
 
+    /**
+     * Creates and returns a new AES SecretKey stored in the AndroidKeyStore under the configured alias.
+     *
+     * The generated key is configured for encryption and decryption with the module's algorithm, block
+     * mode, padding, and key size, and is allowed to perform randomized encryption without requiring
+     * user authentication.
+     *
+     * @return The newly generated `SecretKey` placed in the AndroidKeyStore.
     private fun generateKey(): SecretKey {
         return KeyGenerator.getInstance(ALGORITHM).apply {
             init(
@@ -72,8 +91,10 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Encrypts a PIN string using AES encryption
-     */
+     * Produces a Base64-encoded AES-CBC ciphertext of the given PIN with the initialization vector (IV) prefixed.
+     *
+     * @param pin The plaintext PIN to encrypt.
+     * @return The encrypted PIN as a Base64 string where the IV is stored at the beginning of the decoded bytes. */
     private fun encryptPin(pin: String): String {
         val cipher = encryptionCipher
         val outputStream = ByteArrayOutputStream()
@@ -93,7 +114,10 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Decrypts an encrypted PIN string
+     * Decrypts a stored PIN encoded as Base64 with the IV prepended.
+     *
+     * @param encryptedPin A Base64-encoded blob whose first 16 bytes are the IV and the remainder is the AES-CBC-PKCS7 ciphertext of the PIN.
+     * @return The decrypted PIN as a plain string.
      */
     private fun decryptPin(encryptedPin: String): String {
         val inputStream = Base64.decode(encryptedPin, Base64.DEFAULT).inputStream()
@@ -115,7 +139,12 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Get all stored category lock data as a map
+     * Returns the stored category lock entries parsed into a map.
+     *
+     * Parses preference entries formatted as "categoryId:encryptedPin" and maps each numeric
+     * category ID to its encrypted PIN string.
+     *
+     * @return A mutable map from category ID to encrypted PIN. Invalid or non-numeric entries are ignored.
      */
     private fun getCategoryLockMap(): MutableMap<Long, String> {
         val lockPins = securityPreferences.categoryLockPins().get()
@@ -134,7 +163,12 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Save the category lock map back to preferences
+     * Persist a map of category IDs to encrypted PINs into preferences.
+     *
+     * Each map entry is stored in the preferences-backed StringSet as "categoryId:encryptedPin",
+     * replacing the previously saved set of category locks.
+     *
+     * @param map Mapping from category ID to its encrypted PIN string.
      */
     private fun saveCategoryLockMap(map: Map<Long, String>) {
         val stringSet = map.map { (categoryId, encryptedPin) ->
@@ -144,7 +178,11 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Set a PIN for a category
+     * Stores an encrypted PIN for the specified category after validating its format.
+     *
+     * @param categoryId The ID of the category to associate the PIN with.
+     * @param pin A numeric PIN consisting of 4 to 10 digits.
+     * @throws IllegalArgumentException If `pin` is not 4–10 characters long or contains non-digit characters.
      */
     fun setPinForCategory(categoryId: Long, pin: String) {
         require(pin.length in 4..10) { "PIN must be 4-10 digits" }
@@ -156,7 +194,9 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Remove PIN for a category
+     * Removes the stored PIN for the specified category.
+     *
+     * @param categoryId The ID of the category whose PIN should be removed.
      */
     fun removePinForCategory(categoryId: Long) {
         val map = getCategoryLockMap()
@@ -165,14 +205,22 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Check if a category has a lock
+     * Determine whether a category has a stored PIN lock.
+     *
+     * @param categoryId The ID of the category to check.
+     * @return `true` if the category has a stored PIN lock, `false` otherwise.
      */
     fun hasLock(categoryId: Long): Boolean {
         return getCategoryLockMap().containsKey(categoryId)
     }
 
     /**
-     * Verify if the input PIN matches the stored PIN for a category
+     * Check whether the provided PIN matches the stored PIN for the given category.
+     *
+     * @param categoryId The category identifier whose PIN is verified.
+     * @param inputPin The PIN to verify.
+     * @return `true` if the input PIN matches the stored PIN for the category, `false` otherwise.
+     *         Returns `false` if no PIN is stored for the category or if decryption fails.
      */
     fun verifyPin(categoryId: Long, inputPin: String): Boolean {
         val map = getCategoryLockMap()
@@ -188,14 +236,20 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Get all category IDs that have locks
+     * Get all category IDs that currently have a PIN lock.
+     *
+     * @return A set of category IDs that have a stored encrypted PIN.
      */
     fun getLockedCategoryIds(): Set<Long> {
         return getCategoryLockMap().keys
     }
 
     /**
-     * Delete the encryption key (will invalidate all stored PINs)
+     * Deletes the AES key used for category PIN encryption and clears all stored PINs.
+     *
+     * Removes the keystore entry for the category PIN alias, regenerates a new key, and
+     * clears all per-category and master PIN values from preferences so previously
+     * encrypted values cannot be decrypted.
      */
     fun deleteKey() {
         keyStore.deleteEntry(ALIAS_CATEGORY_PIN)
@@ -206,7 +260,12 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Set the master recovery PIN. This PIN can unlock any locked category.
+     * Stores a master recovery PIN that can unlock any locked category.
+     *
+     * The PIN must be 4 to 10 characters long and contain only digits.
+     *
+     * @param pin The master recovery PIN to store.
+     * @throws IllegalArgumentException if `pin` is not 4–10 digits or contains non-digit characters.
      */
     fun setMasterPin(pin: String) {
         require(pin.length in 4..10) { "Master PIN must be 4-10 digits" }
@@ -217,21 +276,25 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Remove the master recovery PIN
+     * Clears the stored encrypted master PIN from preferences.
      */
     fun removeMasterPin() {
         securityPreferences.categoryLockMasterPin().set("")
     }
 
     /**
-     * Check if a master PIN is set
+     * Checks whether a master PIN is stored.
+     *
+     * @return `true` if a master PIN is set, `false` otherwise.
      */
     fun hasMasterPin(): Boolean {
         return securityPreferences.categoryLockMasterPin().get().isNotEmpty()
     }
 
     /**
-     * Verify if the input PIN matches the master PIN
+     * Checks whether the provided PIN matches the stored master PIN.
+     *
+     * @returns `true` if the provided PIN matches the stored master PIN; `false` if no master PIN is set, the PIN does not match, or decryption fails.
      */
     fun verifyMasterPin(inputPin: String): Boolean {
         val encryptedMasterPin = securityPreferences.categoryLockMasterPin().get()
@@ -246,7 +309,10 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Get failed attempt count for a category
+     * Retrieves the number of failed PIN attempts recorded for the given category.
+     *
+     * @param categoryId The category identifier to look up.
+     * @return The failed-attempt count for the category, or 0 if no record exists.
      */
     fun getFailedAttempts(categoryId: Long): Int {
         val attemptsSet = securityPreferences.categoryLockFailedAttempts().get()
@@ -264,7 +330,10 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Increment failed attempt count for a category
+     * Increments the stored failed-attempts counter for the given category and persists the new value.
+     *
+     * @param categoryId The category identifier whose failed-attempts counter to increment.
+     * @return The updated failed-attempts count for the category.
      */
     fun incrementFailedAttempts(categoryId: Long): Int {
         val attemptsMap = getFailedAttemptsMap().toMutableMap()
@@ -276,7 +345,9 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Reset failed attempt count for a category (called on successful unlock)
+     * Resets the failed unlock attempt count for the specified category.
+     *
+     * @param categoryId The category id whose failed attempt count will be cleared.
      */
     fun resetFailedAttempts(categoryId: Long) {
         val attemptsMap = getFailedAttemptsMap().toMutableMap()
@@ -285,12 +356,17 @@ object CategoryLockCrypto {
     }
 
     /**
-     * Reset all failed attempt counters
+     * Clears all stored failed-attempt counters for category locks.
      */
     fun resetAllFailedAttempts() {
         securityPreferences.categoryLockFailedAttempts().set(emptySet())
     }
 
+    /**
+     * Parses the stored failed-attempt entries and returns a map of category IDs to failed attempt counts.
+     *
+     * @return A `Map<Long, Int>` where each key is a category ID and each value is the parsed failed-attempt count; entries that fail to parse are omitted.
+     */
     private fun getFailedAttemptsMap(): Map<Long, Int> {
         val attemptsSet = securityPreferences.categoryLockFailedAttempts().get()
         val map = mutableMapOf<Long, Int>()
@@ -307,6 +383,11 @@ object CategoryLockCrypto {
         return map
     }
 
+    /**
+     * Persist per-category failed-attempt counts to preferences.
+     *
+     * @param map Mapping from category ID to its failed attempt count.
+     */
     private fun saveFailedAttemptsMap(map: Map<Long, Int>) {
         val stringSet = map.map { (categoryId, count) ->
             "$categoryId:$count"

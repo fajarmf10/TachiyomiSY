@@ -20,6 +20,15 @@ import eu.kanade.presentation.category.visualName
 import tachiyomi.domain.category.model.Category
 import tachiyomi.presentation.core.components.material.TabText
 
+/**
+ * Renders a horizontal, scrollable tab row for library categories with optional lock indicators and per-category badge counts.
+ *
+ * @param categories The list of categories to display as tabs.
+ * @param pagerState Pager state used to determine the currently selected tab.
+ * @param getItemCountForCategory Function that returns the badge count for a given category, or `null` if none.
+ * @param onTabItemClick Callback invoked with the tab index when a tab is clicked.
+ * @param isCategoryLocked Function that returns `true` for categories that should display a lock icon; defaults to always `false`.
+ */
 @Composable
 internal fun LibraryTabs(
     categories: List<Category>,

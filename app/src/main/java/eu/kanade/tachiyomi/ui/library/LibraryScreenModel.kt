@@ -168,6 +168,11 @@ class LibraryScreenModel(
         val mangaIds: Set<Long>,
     )
 
+    /**
+     * Clears the cached batch metadata used for library filtering.
+     *
+     * After calling this, batch metadata will be reloaded on next use.
+     */
     private fun invalidateMetadataCache() {
         metadataCache = null
     }
@@ -981,6 +986,16 @@ class LibraryScreenModel(
         mutableState.update { it.copy(dialog = Dialog.RecommendationSearchSheet(mangaList)) }
     }
 
+    /**
+     * Filters a list of library items by a textual search query and tracking filters.
+     *
+     * Applies the parsed query to each LibraryItem, supporting special "id:<number>" lookup,
+     * track-service-based constraints, and optimized batch metadata lookup for sources that provide metadata.
+     *
+     * @param unfiltered The input list of LibraryItem to filter.
+     * @param query The textual search query; may be null or blank to skip filtering.
+     * @param loggedInTrackServices Map of tracker service IDs to their TriState filter values used when evaluating tracking-related query components.
+     * @return A list containing only the LibraryItem values from `unfiltered` that match the provided query and tracking filters.
     private suspend fun filterLibrary(
         unfiltered: List<LibraryItem>,
         query: String?,
@@ -1263,6 +1278,14 @@ class LibraryScreenModel(
         mutableState.update { it.copy(searchQuery = query) }
     }
 
+    /**
+     * Sets the active category index in the UI state and persists the resulting coerced index as the last used category.
+     *
+     * The provided `index` is written into state, then the state's `coercedActiveCategoryIndex` (validated within bounds)
+     * is saved to `libraryPreferences.lastUsedCategory()`.
+     *
+     * @param index The desired active category index (zero-based); the persisted value is the state's coerced index. 
+     */
     fun updateActiveCategoryIndex(index: Int) {
         val newIndex = mutableState.updateAndGet { state ->
             state.copy(activeCategoryIndex = index)
@@ -1274,8 +1297,10 @@ class LibraryScreenModel(
 
     // SY -->
     /**
-     * Check if a category can be accessed. If locked and not unlocked, shows unlock dialog.
-     * Returns true if access is granted, false if locked.
+     * Ensure the given category is accessible, showing the unlock dialog if it is locked and not yet unlocked.
+     *
+     * @param category The category to check access for.
+     * @return `true` if the category is accessible, `false` if it is locked and the unlock dialog was shown.
      */
     fun requestCategoryAccess(category: Category): Boolean {
         if (CategoryLockCrypto.hasLock(category.id) && !CategoryLockManager.isUnlocked(category.id)) {
@@ -1286,9 +1311,15 @@ class LibraryScreenModel(
     }
 
     /**
-     * Attempt to unlock a category with the provided PIN.
-     * Returns true if successful, false if PIN is incorrect.
-     * Tracks failed attempts and supports master PIN as fallback.
+     * Unlocks a locked category using the provided PIN.
+     *
+     * If the PIN matches the category's PIN or the master PIN, the category is unlocked,
+     * the failed-attempts counter for that category is reset, and the unlock dialog is closed.
+     * If the PIN does not match, the failed-attempts counter for the category is incremented.
+     *
+     * @param categoryId The id of the category to unlock.
+     * @param pin The PIN to validate for unlocking.
+     * @return `true` if the category was unlocked, `false` otherwise.
      */
     fun unlockCategory(categoryId: Long, pin: String): Boolean {
         // Check if the PIN matches the category PIN or the master PIN
@@ -1309,19 +1340,31 @@ class LibraryScreenModel(
     }
 
     /**
-     * Check if a category is locked (has a PIN set)
+     * Determine whether a category has a PIN lock set.
+     *
+     * @param categoryId The database id of the category to check.
+     * @return `true` if the category has a lock (PIN) set, `false` otherwise.
      */
     fun isCategoryLocked(categoryId: Long): Boolean {
         return CategoryLockCrypto.hasLock(categoryId)
     }
 
     /**
-     * Check if a category is currently unlocked in the session
+     * Determines whether the given category is unlocked for the current session.
+     *
+     * @param categoryId ID of the category to check.
+     * @return `true` if the category is unlocked in this session, `false` otherwise.
      */
     fun isCategoryUnlocked(categoryId: Long): Boolean {
         return CategoryLockManager.isUnlocked(categoryId)
     }
-    // SY <--
+    /**
+     * Opens the "Change Category" dialog for the current selection and populates it with preselected category states.
+     *
+     * The dialog is initialized with the currently selected mangas and a list of categories (excluding the default
+     * category with id 0). Categories present in every selected manga are marked as checked, categories present in some
+     * but not all selected mangas are marked as excluded, and all others are left unselected.
+     */
 
     fun openChangeCategoryDialog() {
         screenModelScope.launchIO {

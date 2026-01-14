@@ -19,6 +19,12 @@ enum class DownloadQueueStatus(val value: String) {
     COMPLETED("COMPLETED");
 
     companion object {
+        /**
+         * Converts a string into the corresponding DownloadQueueStatus.
+         *
+         * @param value The string representation of a status.
+         * @return The matching DownloadQueueStatus, or `PENDING` if no match is found.
+         */
         fun fromString(value: String): DownloadQueueStatus {
             return entries.find { it.value == value } ?: PENDING
         }
@@ -32,6 +38,12 @@ enum class DownloadPriority(val value: Int) {
     URGENT(2);    // User clicked "Download Now" or reading in reader
 
     companion object {
+        /**
+         * Maps an integer value to the corresponding DownloadPriority.
+         *
+         * @param value Numeric priority value to map.
+         * @return The matching DownloadPriority, or `NORMAL` if no match is found.
+         */
         fun fromInt(value: Int): DownloadPriority {
             return entries.find { it.value == value } ?: NORMAL
         }

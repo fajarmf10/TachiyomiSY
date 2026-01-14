@@ -59,6 +59,13 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
         )
     }
 
+    /**
+     * Executes the download job: verifies network requirements, starts the downloader, promotes the worker to foreground while active, and keeps it running until the downloader finishes or network conditions prevent progress.
+     *
+     * The worker will evaluate current network state against user preference (only-WiFi), attempt to start the downloader, and observe network/preference changes while running. If the job cannot start due to network conditions it will signal WorkManager to retry; otherwise it completes successfully when the downloader stops or the worker is stopped.
+     *
+     * @return `Result.retry()` if the job could not start because of network conditions, `Result.success()` otherwise.
+     */
     override suspend fun doWork(): Result {
         var networkCheck = checkNetworkState(
             applicationContext.activeNetworkState(),
@@ -110,11 +117,11 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
         private const val TAG = "Downloader"
 
         /**
-         * Setup periodic download worker with configurable interval.
-         * Replaces the old one-time worker approach.
+         * Schedule or update the periodic DownloadJob using user preferences or an explicit override.
          *
-         * @param context Android context
-         * @param intervalMinutes Override interval in minutes. If null, reads from preferences.
+         * If `intervalMinutes` is 0, any existing periodic download work is cancelled.
+         *
+         * @param intervalMinutes Optional override for the repeat interval in minutes; when null the preference value is used.
          */
         fun setupPeriodicWork(context: Context, intervalMinutes: Int? = null) {
             val preferences = Injekt.get<DownloadPreferences>()
@@ -161,8 +168,10 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
         }
 
         /**
-         * Start a one-time download job immediately (for manual triggers).
-         * Used when user manually starts downloads.
+         * Enqueues a one-time download job to run immediately.
+         *
+         * The job is scheduled with network constraints that reflect the user's "download over Wi‑Fi only" preference
+         * and replaces any existing queued download job with the same unique tag.
          */
         fun start(context: Context) {
             val preferences = Injekt.get<DownloadPreferences>()
@@ -196,6 +205,13 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
                 .let { list -> list.count { it.state == WorkInfo.State.RUNNING } == 1 }
         }
 
+        /**
+         * Exposes whether a DownloadJob is currently running as a Flow.
+         *
+         * Observes WorkManager's unique work infos for the downloader and emits `true` when exactly one work item is in the RUNNING state, `false` otherwise.
+         *
+         * @return `true` if a DownloadJob is running, `false` otherwise.
+         */
         fun isRunningFlow(context: Context): Flow<Boolean> {
             return WorkManager.getInstance(context)
                 .getWorkInfosForUniqueWorkLiveData(TAG)
@@ -204,4 +220,3 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
         }
     }
 }
-
