@@ -249,7 +249,7 @@ class FlareSolverrInterceptor(
                 // cookie.expires is a Unix epoch timestamp (seconds since Jan 1, 1970)
                 ZonedDateTime.ofInstant(
                     Instant.ofEpochSecond(cookie.expires.toLong()),
-                    ZoneId.systemDefault(),
+                    java.time.ZoneOffset.UTC,
                 ).format(formatter)
             } else {
                 "Fri, 31 Dec 9999 23:59:59 GMT"

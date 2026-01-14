@@ -357,8 +357,8 @@ object SettingsAdvancedScreen : SearchableSettings {
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = networkPreferences.showFlareSolverrNotifications(),
-                    title = "Show FlareSolverr notifications",
-                    subtitle = "Display toast notifications when FlareSolverr is actively solving Cloudflare challenges",
+                    title = stringResource(MR.strings.pref_show_flare_solverr_notifications),
+                    subtitle = stringResource(MR.strings.pref_show_flare_solverr_notifications_summary),
                     enabled = enableFlareSolverr,
                 ),
                 Preference.PreferenceItem.TextPreference(
