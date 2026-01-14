@@ -4,10 +4,15 @@ import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.lifecycle.asFlow
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.ForegroundInfo
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -27,10 +32,11 @@ import kotlinx.coroutines.flow.onEach
 import tachiyomi.domain.download.service.DownloadPreferences
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.util.concurrent.TimeUnit
 
 /**
- * This worker is used to manage the downloader. The system can decide to stop the worker, in
- * which case the downloader is also stopped. It's also stopped while there's no network available.
+ * This worker manages the downloader with periodic execution and exponential backoff.
+ * Survives app restarts and automatically retries on network availability.
  */
 class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineWorker(context, workerParams) {
 
@@ -61,7 +67,8 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
         var active = networkCheck && downloadManager.downloaderStart()
 
         if (!active) {
-            return Result.failure()
+            // Return retry for network issues so WorkManager can retry with backoff
+            return if (!networkCheck) Result.retry() else Result.success()
         }
 
         setForegroundSafely()
@@ -102,8 +109,72 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
     companion object {
         private const val TAG = "Downloader"
 
+        /**
+         * Setup periodic download worker with configurable interval.
+         * Replaces the old one-time worker approach.
+         */
+        fun setupPeriodicWork(context: Context) {
+            val preferences = Injekt.get<DownloadPreferences>()
+            val interval = preferences.downloadWorkerInterval().get()
+
+            if (interval == 0) {
+                // User disabled periodic downloads
+                WorkManager.getInstance(context).cancelUniqueWork(TAG)
+                return
+            }
+
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(
+                    if (preferences.downloadOnlyOverWifi().get()) {
+                        NetworkType.UNMETERED
+                    } else {
+                        NetworkType.CONNECTED
+                    },
+                )
+                .setRequiresBatteryNotLow(true)
+                .setRequiresStorageNotLow(true)
+                .build()
+
+            val request = PeriodicWorkRequestBuilder<DownloadJob>(
+                repeatInterval = interval.toLong(),
+                repeatIntervalTimeUnit = TimeUnit.MINUTES,
+                flexTimeInterval = 5,
+                flexTimeIntervalUnit = TimeUnit.MINUTES,
+            )
+                .setConstraints(constraints)
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    2, // Start with 2 minutes
+                    TimeUnit.MINUTES,
+                )
+                .addTag(TAG)
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                TAG,
+                ExistingPeriodicWorkPolicy.UPDATE,
+                request,
+            )
+        }
+
+        /**
+         * Start a one-time download job immediately (for manual triggers).
+         * Used when user manually starts downloads.
+         */
         fun start(context: Context) {
+            val preferences = Injekt.get<DownloadPreferences>()
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(
+                    if (preferences.downloadOnlyOverWifi().get()) {
+                        NetworkType.UNMETERED
+                    } else {
+                        NetworkType.CONNECTED
+                    },
+                )
+                .build()
+
             val request = OneTimeWorkRequestBuilder<DownloadJob>()
+                .setConstraints(constraints)
                 .addTag(TAG)
                 .build()
             WorkManager.getInstance(context)
@@ -130,3 +201,4 @@ class DownloadJob(context: Context, workerParams: WorkerParameters) : CoroutineW
         }
     }
 }
+

@@ -7,7 +7,11 @@ import eu.kanade.tachiyomi.source.online.HttpSource
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import logcat.LogPriority
+import logcat.logcat
 import tachiyomi.domain.chapter.interactor.GetChapter
+import tachiyomi.domain.download.model.DownloadPriority
+import tachiyomi.domain.download.repository.DownloadQueueRepository
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
@@ -16,6 +20,7 @@ import uy.kohesive.injekt.api.get
 
 /**
  * This class is used to persist active downloads across application restarts.
+ * Now migrates to database-backed queue for better reliability.
  */
 class DownloadStore(
     context: Context,
@@ -23,10 +28,12 @@ class DownloadStore(
     private val json: Json = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
     private val getChapter: GetChapter = Injekt.get(),
+    private val downloadQueueRepository: DownloadQueueRepository = Injekt.get(),
 ) {
 
     /**
      * Preference file where active downloads are stored.
+     * Used for migration only - new downloads go to database.
      */
     private val preferences = context.getSharedPreferences("active_downloads", Context.MODE_PRIVATE)
 
@@ -88,28 +95,64 @@ class DownloadStore(
 
     /**
      * Returns the list of downloads to restore. It should be called in a background thread.
+     * Migrates from SharedPreferences to database on first run.
      */
     fun restore(): List<Download> {
-        val objs = preferences.all
-            .mapNotNull { it.value as? String }
-            .mapNotNull { deserialize(it) }
-            .sortedBy { it.order }
+        val migrationCompleted = preferences.getBoolean("queue_migrated_to_db", false)
 
+        // If not migrated yet, migrate SharedPreferences to database
+        if (!migrationCompleted) {
+            val objs = preferences.all
+                .mapNotNull { it.value as? String }
+                .mapNotNull { deserialize(it) }
+                .sortedBy { it.order }
+
+            if (objs.isNotEmpty()) {
+                logcat(LogPriority.INFO) { "Migrating ${objs.size} downloads to database..." }
+                runBlocking {
+                    objs.forEach { obj ->
+                        try {
+                            downloadQueueRepository.add(
+                                mangaId = obj.mangaId,
+                                chapterId = obj.chapterId,
+                                priority = DownloadPriority.NORMAL.value,
+                            )
+                        } catch (e: Exception) {
+                            logcat(LogPriority.ERROR, e) { "Failed to migrate download: ${obj.chapterId}" }
+                        }
+                    }
+                }
+                logcat(LogPriority.INFO) { "Migration to database completed" }
+            }
+
+            // Mark migration as complete and clear SharedPreferences
+            preferences.edit {
+                putBoolean("queue_migrated_to_db", true)
+                // Clear all download entries but keep the migration flag
+                preferences.all.keys.forEach { key ->
+                    if (key != "queue_migrated_to_db") {
+                        remove(key)
+                    }
+                }
+            }
+        }
+
+        // Now load from database
         val downloads = mutableListOf<Download>()
-        if (objs.isNotEmpty()) {
+        val queueEntries = runBlocking { downloadQueueRepository.getPendingByPriority() }
+
+        if (queueEntries.isNotEmpty()) {
             val cachedManga = mutableMapOf<Long, Manga?>()
-            for ((mangaId, chapterId) in objs) {
-                val manga = cachedManga.getOrPut(mangaId) {
-                    runBlocking { getManga.await(mangaId) }
+            for (entry in queueEntries) {
+                val manga = cachedManga.getOrPut(entry.mangaId) {
+                    runBlocking { getManga.await(entry.mangaId) }
                 } ?: continue
                 val source = sourceManager.get(manga.source) as? HttpSource ?: continue
-                val chapter = runBlocking { getChapter.await(chapterId) } ?: continue
+                val chapter = runBlocking { getChapter.await(entry.chapterId) } ?: continue
                 downloads.add(Download(source, manga, chapter))
             }
         }
 
-        // Clear the store, downloads will be added again immediately.
-        clear()
         return downloads
     }
 

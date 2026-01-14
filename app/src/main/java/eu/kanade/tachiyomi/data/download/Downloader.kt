@@ -91,8 +91,14 @@ class Downloader(
 
     /**
      * Store for persisting downloads across restarts.
+     * Migrates to database on first run.
      */
     private val store = DownloadStore(context)
+
+    /**
+     * Repository for database-backed download queue.
+     */
+    private val downloadQueueRepository: tachiyomi.domain.download.repository.DownloadQueueRepository = Injekt.get()
 
     /**
      * Queue where active downloads are kept.

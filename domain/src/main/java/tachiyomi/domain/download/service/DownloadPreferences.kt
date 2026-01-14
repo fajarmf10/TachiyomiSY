@@ -43,6 +43,20 @@ class DownloadPreferences(
 
     fun includeChapterUrlHash() = preferenceStore.getBoolean("download_include_chapter_url_hash", true)
 
+    // Download worker interval (minutes) - 0 = disabled, 15/30/60/180/360 for periodic
+    fun downloadWorkerInterval() = preferenceStore.getInt("download_worker_interval", 15)
+
+    // Auto-download from reading history
+    fun autoDownloadFromReadingHistory() = preferenceStore.getBoolean("auto_download_from_reading_history", false)
+
+    fun autoDownloadReadingHistoryDays() = preferenceStore.getInt("auto_download_reading_history_days", 7)
+
+    // Retry configuration
+    fun autoDownloadMaxRetries() = preferenceStore.getInt("auto_download_max_retries", 5)
+
+    // Cleanup configuration
+    fun cleanupOrphanedFoldersOnStartup() = preferenceStore.getBoolean("cleanup_orphaned_folders_on_startup", true)
+
     companion object {
         private const val REMOVE_EXCLUDE_CATEGORIES_PREF_KEY = "remove_exclude_categories"
         private const val DOWNLOAD_NEW_CATEGORIES_PREF_KEY = "download_new_categories"
