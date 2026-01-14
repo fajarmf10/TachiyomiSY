@@ -7,7 +7,6 @@ import tachiyomi.domain.download.model.DownloadQueueEntry
 import tachiyomi.domain.download.model.DownloadQueueStatus
 import tachiyomi.domain.download.repository.DownloadQueueRepository
 import tachiyomi.domain.download.service.DownloadPreferences
-import kotlin.math.pow
 
 class DownloadQueueRepositoryImpl(
     private val handler: DatabaseHandler,
@@ -21,22 +20,10 @@ class DownloadQueueRepositoryImpl(
     }
 
     override suspend fun getPendingWithBackoff(): List<DownloadQueueEntry> {
-        val all = getPendingByPriority()
-        val now = System.currentTimeMillis()
-
-        return all.filter { entry ->
-            // Apply exponential backoff
-            val lastAttempt = entry.lastAttemptAt ?: 0
-            val backoffDelay = calculateBackoffDelay(entry.retryCount)
-
-            now - lastAttempt >= backoffDelay
+        // Backoff filtering is now done efficiently at the SQL layer
+        return handler.awaitList {
+            download_queueQueries.getPendingWithBackoff(mapper = ::mapDownloadQueueEntry)
         }
-    }
-
-    private fun calculateBackoffDelay(retryCount: Int): Long {
-        // Progressive backoff: 2min, 4min, 8min, 16min, 32min, ~1hr, ~2hr, ~4hr (capped at 6hr)
-        val minutes = (2.0.pow(retryCount.coerceAtMost(7))).toLong() * 2
-        return minutes.coerceAtMost(360) * 60 * 1000 // Max 6 hours
     }
 
     override suspend fun getAll(): List<DownloadQueueEntry> {

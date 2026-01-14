@@ -26,6 +26,27 @@ FROM download_queue
 WHERE status = 'PENDING'
 ORDER BY priority DESC, added_at ASC;
 
+-- Get pending downloads that are ready for retry (after backoff period)
+getPendingWithBackoff:
+SELECT *
+FROM download_queue
+WHERE status = 'PENDING'
+AND (
+    last_attempt_at IS NULL
+    OR (CAST(strftime('%s', 'now') AS INTEGER) * 1000 - last_attempt_at) >=
+        CASE
+            WHEN retry_count = 0 THEN 120000      -- 2 minutes
+            WHEN retry_count = 1 THEN 240000      -- 4 minutes
+            WHEN retry_count = 2 THEN 480000      -- 8 minutes
+            WHEN retry_count = 3 THEN 960000      -- 16 minutes
+            WHEN retry_count = 4 THEN 1920000     -- 32 minutes
+            WHEN retry_count = 5 THEN 3840000     -- 64 minutes
+            WHEN retry_count = 6 THEN 7680000     -- 128 minutes
+            ELSE 21600000                          -- 360 minutes (6 hours) for retry_count >= 7
+        END
+)
+ORDER BY priority DESC, added_at ASC;
+
 -- Get all downloads (any status)
 getAll:
 SELECT *

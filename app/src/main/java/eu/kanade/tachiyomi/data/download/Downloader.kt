@@ -71,6 +71,7 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
 import java.util.Locale
+import tachiyomi.domain.download.repository.DownloadQueueRepository
 
 /**
  * This class is the one in charge of downloading chapters.
@@ -102,7 +103,7 @@ class Downloader(
     /**
      * Repository for database-backed download queue.
      */
-    private val downloadQueueRepository: tachiyomi.domain.download.repository.DownloadQueueRepository = Injekt.get()
+    private val downloadQueueRepository: DownloadQueueRepository = Injekt.get()
 
     /**
      * Queue where active downloads are kept.
