@@ -1,8 +1,8 @@
 # Download Queue Optimization - Implementation Progress
 
-## Status: Phase 1-2 COMPLETE ✅ (Ready to Build)
+## Status: ALL PHASES COMPLETE ✅ (Ready to Test)
 
-**Last Updated:** 2026-01-14 (Session End)
+**Last Updated:** 2026-01-14 (OpenAI Codex completed Phase 3-6)
 
 ---
 
@@ -33,6 +33,7 @@
 **Files Modified:**
 - ✅ `/app/src/main/java/eu/kanade/tachiyomi/data/download/DownloadJob.kt` - Refactored to periodic worker
 - ✅ `/domain/src/main/java/tachiyomi/domain/download/service/DownloadPreferences.kt` - Added new preferences
+- ✅ `/app/src/main/java/eu/kanade/tachiyomi/App.kt` - Initialize periodic worker on app startup
 
 **Key Features:**
 - Periodic WorkManager job (configurable interval: 0/15/30/60/180/360 minutes)
@@ -41,6 +42,76 @@
 - Result.retry() for network issues
 - Backward compatible one-time job for manual triggers
 - All required preferences added (downloadWorkerInterval, autoDownloadMaxRetries, etc.)
+
+### Phase 3: Smart Auto-Download Polling (COMPLETE ✅)
+**Files Created:**
+- ✅ `/domain/src/main/java/tachiyomi/domain/download/interactor/GetChaptersForAutoDownload.kt` - Reading history based chapter selection
+- ✅ `/app/src/main/java/eu/kanade/tachiyomi/data/download/AutoDownloadPollingWorker.kt` - Periodic polling worker
+
+**Files Modified:**
+- ✅ `/data/src/main/sqldelight/tachiyomi/view/historyView.sq` - Added query for recent reading history
+- ✅ `/domain/src/main/java/tachiyomi/domain/history/repository/HistoryRepository.kt` - Interface for recent history
+- ✅ `/data/src/main/java/tachiyomi/data/history/HistoryRepositoryImpl.kt` - Implementation
+- ✅ `/ui/reader/ReaderViewModel.kt` - Removed download requirement (line 623 fix)
+- ✅ `/app/src/main/java/eu/kanade/domain/DomainModule.kt` - Register GetChaptersForAutoDownload
+- ✅ `/app/src/main/java/eu/kanade/tachiyomi/App.kt` - Initialize polling worker
+
+**Key Features:**
+- Auto-download based on reading history (not just reader triggers)
+- Configurable lookback period (3/7/14/30 days)
+- Respects "download ahead" count per manga (minimum 1)
+- Only targets favorites from recent reading history
+- Reader auto-download no longer requires current chapter to be downloaded
+
+### Phase 4: Temp Folder Cleanup (COMPLETE ✅)
+**Files Created:**
+- ✅ `/app/src/main/java/eu/kanade/tachiyomi/data/download/TempFolderCleanupWorker.kt` - Daily cleanup worker
+
+**Files Modified:**
+- ✅ `/app/src/main/java/eu/kanade/tachiyomi/data/download/Downloader.kt` - Added cleanup methods:
+  - `cleanupOrphanedTempFolders()` - Main cleanup logic
+  - Startup cleanup in init block
+  - Delete stale temp before creating new one (line ~366)
+- ✅ `/app/src/main/java/eu/kanade/tachiyomi/App.kt` - Initialize daily cleanup worker
+
+**Key Features:**
+- Startup cleanup removes temp folders older than 1 hour
+- Delete stale temp folder before creating new download
+- Daily cleanup worker with 3-hour initial delay
+- Manual cleanup button in settings (removes all temp folders immediately)
+- Logs freed storage space
+
+### Phase 5: Enhanced Error Handling (COMPLETE ✅)
+**Files Modified:**
+- ✅ `/app/src/main/java/eu/kanade/tachiyomi/data/download/Downloader.kt` - Error classification:
+  - Classify errors by type (NETWORK, SOURCE, DISK_FULL, CHAPTER_NOT_FOUND, UNKNOWN)
+  - Call `recordFailure()` with error type
+  - Non-retryable errors auto-removed from queue
+  - Exponential backoff with error-specific multipliers
+
+**Key Features:**
+- Smart error classification prevents wasted retries
+- Network errors: Retry with 1.0x backoff multiplier
+- Source errors: Retry with 1.5x backoff multiplier
+- Disk full: No retry (requires user action)
+- 404/not found: No retry (chapter deleted)
+- Unknown errors: Retry with 2.0x backoff multiplier
+
+### Phase 6: Preferences & UI (COMPLETE ✅)
+**Files Modified:**
+- ✅ `/app/src/main/java/eu/kanade/presentation/more/settings/screen/SettingsDownloadScreen.kt` - Added UI sections:
+  - **Download Queue**: Worker interval (0/15/30/60/180/360 min), max retries (3/5/10/unlimited)
+  - **Auto-Download Advanced**: Reading history toggle, lookback days (3/7/14/30)
+  - **Storage Cleanup**: Startup cleanup toggle, manual cleanup button
+- ✅ `/i18n/src/commonMain/resources/MR/base/strings.xml` - All new setting strings
+- ✅ `/i18n/src/commonMain/resources/MR/base/plurals.xml` - Plural strings for time intervals
+
+**Key Features:**
+- All features user-configurable
+- Manual cleanup shows freed storage
+- Worker interval 0 = disabled
+- Unlimited retries option (999)
+- Clear descriptions and recommendations
 
 ---
 

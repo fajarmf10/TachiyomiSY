@@ -1,0 +1,37 @@
+package tachiyomi.domain.download.interactor
+
+import tachiyomi.domain.download.service.DownloadPreferences
+import tachiyomi.domain.history.interactor.GetNextChapters
+import tachiyomi.domain.history.repository.HistoryRepository
+import tachiyomi.domain.manga.interactor.GetManga
+import tachiyomi.domain.manga.model.Manga
+import tachiyomi.domain.chapter.model.Chapter
+import java.util.Date
+import java.util.concurrent.TimeUnit
+
+class GetChaptersForAutoDownload(
+    private val historyRepository: HistoryRepository,
+    private val getManga: GetManga,
+    private val getNextChapters: GetNextChapters,
+    private val downloadPreferences: DownloadPreferences,
+) {
+
+    suspend fun await(): List<Pair<Manga, List<Chapter>>> {
+        if (!downloadPreferences.autoDownloadFromReadingHistory().get()) return emptyList()
+
+        val lookbackDays = downloadPreferences.autoDownloadReadingHistoryDays().get().coerceAtLeast(1)
+        val readAfter = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(lookbackDays.toLong()))
+        val chaptersPerManga = downloadPreferences.autoDownloadWhileReading().get().coerceAtLeast(1)
+
+        return historyRepository.getHistoryForAutoDownload(readAfter)
+            .mapNotNull { history ->
+                val manga = getManga.await(history.mangaId) ?: return@mapNotNull null
+                val chapters = getNextChapters.await(
+                    mangaId = history.mangaId,
+                    fromChapterId = history.chapterId,
+                    onlyUnread = true,
+                ).take(chaptersPerManga)
+                if (chapters.isEmpty()) null else manga to chapters
+            }
+    }
+}

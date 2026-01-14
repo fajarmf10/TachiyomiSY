@@ -1,20 +1,28 @@
 package eu.kanade.presentation.more.settings.screen
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.util.fastMap
 import eu.kanade.presentation.category.visualName
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.widget.TriStateListDialog
+import eu.kanade.tachiyomi.data.download.AutoDownloadPollingWorker
+import eu.kanade.tachiyomi.data.download.DownloadJob
+import eu.kanade.tachiyomi.data.download.TempFolderCleanupWorker
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.coroutines.launch
+import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.download.service.DownloadPreferences
@@ -22,6 +30,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
+import tachiyomi.util.system.toast
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -66,6 +75,7 @@ object SettingsDownloadScreen : SearchableSettings {
                 subtitle = stringResource(MR.strings.pref_download_concurrent_pages_summary),
                 onValueChanged = { downloadPreferences.parallelPageLimit().set(it) },
             ),
+            getDownloadQueueGroup(downloadPreferences = downloadPreferences),
             getDeleteChaptersGroup(
                 downloadPreferences = downloadPreferences,
                 categories = allCategories,
@@ -74,7 +84,9 @@ object SettingsDownloadScreen : SearchableSettings {
                 downloadPreferences = downloadPreferences,
                 allCategories = allCategories,
             ),
+            getAutoDownloadAdvancedGroup(downloadPreferences = downloadPreferences),
             getDownloadAheadGroup(downloadPreferences = downloadPreferences),
+            getStorageCleanupGroup(downloadPreferences = downloadPreferences),
         )
     }
 
@@ -207,6 +219,125 @@ object SettingsDownloadScreen : SearchableSettings {
                     title = stringResource(MR.strings.auto_download_while_reading),
                 ),
                 Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.download_ahead_info)),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getDownloadQueueGroup(
+        downloadPreferences: DownloadPreferences,
+    ): Preference.PreferenceGroup {
+        val context = LocalContext.current
+        return Preference.PreferenceGroup(
+            title = stringResource(MR.strings.pref_category_download_queue),
+            preferenceItems = persistentListOf(
+                Preference.PreferenceItem.ListPreference(
+                    preference = downloadPreferences.downloadWorkerInterval(),
+                    entries = persistentMapOf(
+                        0 to stringResource(MR.strings.disabled),
+                        15 to stringResource(MR.strings.update_15min),
+                        30 to stringResource(MR.strings.update_30min),
+                        60 to stringResource(MR.strings.update_60min),
+                        180 to stringResource(MR.strings.update_3hour),
+                        360 to stringResource(MR.strings.update_6hour),
+                    ),
+                    title = stringResource(MR.strings.pref_download_worker_interval),
+                    subtitle = stringResource(MR.strings.pref_download_worker_interval_summary),
+                    onValueChanged = {
+                        DownloadJob.setupPeriodicWork(context)
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = downloadPreferences.autoDownloadMaxRetries(),
+                    entries = persistentMapOf(
+                        3 to "3",
+                        5 to "5",
+                        10 to "10",
+                        999 to stringResource(MR.strings.unlimited),
+                    ),
+                    title = stringResource(MR.strings.pref_max_download_retries),
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getAutoDownloadAdvancedGroup(
+        downloadPreferences: DownloadPreferences,
+    ): Preference.PreferenceGroup {
+        val context = LocalContext.current
+        val autoDownloadFromHistory by downloadPreferences.autoDownloadFromReadingHistory().collectAsState()
+        val lookbackDays by downloadPreferences.autoDownloadReadingHistoryDays().collectAsState()
+
+        return Preference.PreferenceGroup(
+            title = stringResource(MR.strings.pref_category_auto_download_advanced),
+            preferenceItems = persistentListOf(
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = downloadPreferences.autoDownloadFromReadingHistory(),
+                    title = stringResource(MR.strings.pref_auto_download_reading_history),
+                    subtitle = stringResource(MR.strings.pref_auto_download_reading_history_summary),
+                    onValueChanged = {
+                        AutoDownloadPollingWorker.setupPeriodicWork(context)
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.SliderPreference(
+                    value = lookbackDays,
+                    valueRange = 3..30,
+                    title = stringResource(MR.strings.pref_reading_history_lookback),
+                    subtitle = stringResource(MR.strings.pref_reading_history_lookback_summary),
+                    valueString = pluralStringResource(MR.plurals.day, lookbackDays, lookbackDays),
+                    enabled = autoDownloadFromHistory,
+                    onValueChanged = { downloadPreferences.autoDownloadReadingHistoryDays().set(it) },
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getStorageCleanupGroup(
+        downloadPreferences: DownloadPreferences,
+    ): Preference.PreferenceGroup {
+        val scope = rememberCoroutineScope()
+        val context = LocalContext.current
+        val cleanupOnStartup by downloadPreferences.cleanupOrphanedFoldersOnStartup().collectAsState()
+
+        return Preference.PreferenceGroup(
+            title = stringResource(MR.strings.pref_category_storage_cleanup),
+            preferenceItems = persistentListOf(
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = downloadPreferences.cleanupOrphanedFoldersOnStartup(),
+                    title = stringResource(MR.strings.pref_cleanup_on_startup),
+                    subtitle = stringResource(MR.strings.pref_cleanup_on_startup_summary),
+                    onValueChanged = {
+                        TempFolderCleanupWorker.setupPeriodicWork(context)
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(MR.strings.pref_cleanup_now),
+                    subtitle = stringResource(MR.strings.pref_cleanup_now_summary),
+                    enabled = cleanupOnStartup,
+                    onClick = {
+                        context.toast(MR.strings.cleanup_temp_folders_started)
+                        scope.launch {
+                            val cleaned = withIOContext {
+                                TempFolderCleanupWorker.cleanupOrphanedTempFolders(maxAgeMillis = 0)
+                            }
+                            val message = if (cleaned == 0) {
+                                context.stringResource(MR.strings.cleanup_temp_folders_none)
+                            } else {
+                                context.pluralStringResource(
+                                    MR.plurals.cleanup_temp_folders_done,
+                                    cleaned,
+                                    cleaned,
+                                )
+                            }
+                            context.toast(message, Toast.LENGTH_LONG)
+                        }
+                    },
+                ),
             ),
         )
     }

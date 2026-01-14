@@ -58,11 +58,13 @@ import tachiyomi.core.metadata.comicinfo.COMIC_INFO_FILE
 import tachiyomi.core.metadata.comicinfo.ComicInfo
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.chapter.model.Chapter
+import tachiyomi.domain.download.model.DownloadErrorType
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
 import tachiyomi.i18n.MR
+import eu.kanade.tachiyomi.network.HttpException
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
@@ -130,6 +132,11 @@ class Downloader(
         launchNow {
             val chapters = async { store.restore() }
             addAllToQueue(chapters.await())
+        }
+        if (downloadPreferences.cleanupOrphanedFoldersOnStartup().get()) {
+            launchNow {
+                TempFolderCleanupWorker.cleanupOrphanedTempFolders()
+            }
         }
     }
 
@@ -349,6 +356,7 @@ class Downloader(
             provider.getMangaDir(/* SY --> */ download.manga.ogTitle /* SY <-- */, download.source).getOrElse { e ->
                 download.status = Download.State.ERROR
                 notifier.onError(e.message, download.chapter.name, download.manga.title, download.manga.id)
+                recordFailure(download, e.message, DownloadErrorType.UNKNOWN)
                 return
             }
 
@@ -361,6 +369,7 @@ class Downloader(
                 download.manga.title,
                 download.manga.id,
             )
+            recordFailure(download, context.stringResource(MR.strings.download_insufficient_space), DownloadErrorType.DISK_FULL)
             return
         }
 
@@ -369,7 +378,9 @@ class Downloader(
             download.chapter.scanlator,
             download.chapter.url,
         )
-        val tmpDir = mangaDir.createDirectory(chapterDirname + TMP_DIR_SUFFIX)!!
+        val tmpDirName = chapterDirname + TMP_DIR_SUFFIX
+        mangaDir.findFile(tmpDirName)?.delete()
+        val tmpDir = mangaDir.createDirectory(tmpDirName)!!
 
         try {
             // If the page list already exists, start from the file
@@ -447,12 +458,52 @@ class Downloader(
             DiskUtil.createNoMediaFile(tmpDir, context)
 
             download.status = Download.State.DOWNLOADED
+            downloadQueueRepository.markCompleted(download.chapter.id)
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
             // If the page list threw, it will resume here
             logcat(LogPriority.ERROR, error)
             download.status = Download.State.ERROR
             notifier.onError(error.message, download.chapter.name, download.manga.title, download.manga.id)
+            val errorType = classifyError(error)
+            recordFailure(download, error.message, errorType)
+        }
+    }
+
+    private suspend fun recordFailure(
+        download: Download,
+        errorMessage: String?,
+        errorType: DownloadErrorType,
+    ) {
+        val message = errorMessage ?: context.stringResource(MR.strings.unknown_error)
+        downloadQueueRepository.recordFailure(download.chapter.id, message, errorType)
+        if (!errorType.canRetry) {
+            downloadQueueRepository.removeByChapterId(download.chapter.id)
+            removeFromQueue(download)
+        }
+    }
+
+    private fun classifyError(error: Throwable): DownloadErrorType {
+        // Check for disk space errors first (by message)
+        val message = error.message?.lowercase() ?: ""
+        if (message.contains("space") ||
+            message.contains("disk") ||
+            message.contains("storage") ||
+            message.contains("enospc") ||  // Linux error code
+            message.contains("no space left")) {
+            return DownloadErrorType.DISK_FULL
+        }
+
+        return when (error) {
+            is HttpException -> {
+                if (error.code == 404 || error.code == 410) {
+                    DownloadErrorType.CHAPTER_NOT_FOUND
+                } else {
+                    DownloadErrorType.SOURCE_ERROR
+                }
+            }
+            is java.io.IOException -> DownloadErrorType.NETWORK_ERROR
+            else -> DownloadErrorType.UNKNOWN
         }
     }
 

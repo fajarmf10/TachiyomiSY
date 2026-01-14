@@ -8,6 +8,7 @@ import tachiyomi.domain.history.model.History
 import tachiyomi.domain.history.model.HistoryUpdate
 import tachiyomi.domain.history.model.HistoryWithRelations
 import tachiyomi.domain.history.repository.HistoryRepository
+import java.util.Date
 
 class HistoryRepositoryImpl(
     private val handler: DatabaseHandler,
@@ -22,6 +23,12 @@ class HistoryRepositoryImpl(
     override suspend fun getLastHistory(): HistoryWithRelations? {
         return handler.awaitOneOrNull {
             historyViewQueries.getLatestHistory(HistoryMapper::mapHistoryWithRelations)
+        }
+    }
+
+    override suspend fun getHistoryForAutoDownload(readAfter: Date): List<HistoryWithRelations> {
+        return handler.awaitList {
+            historyViewQueries.getHistoryForAutoDownload(readAfter, HistoryMapper::mapHistoryWithRelations)
         }
     }
 
