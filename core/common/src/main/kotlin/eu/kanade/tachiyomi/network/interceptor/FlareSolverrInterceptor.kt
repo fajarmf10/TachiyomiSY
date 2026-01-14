@@ -21,6 +21,8 @@ import okhttp3.Response
 import okio.IOException
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.injectLazy
+import java.time.Instant
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -35,9 +37,9 @@ class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Int
             return originalResponse
         }
 
-        // FlareSolverr is disabled, so just proceed with the request.
+        // FlareSolverr is disabled, so just return the original response.
         if (!preferences.enableFlareSolverr().get()) {
-            return chain.proceed(originalRequest)
+            return originalResponse
         }
 
         logcat(LogPriority.DEBUG) { "Intercepting request: ${originalRequest.url}" }
@@ -186,7 +188,11 @@ class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Int
         private fun buildCookieString(cookie: FlareSolverSolutionCookie, domain: String): String {
             val formatter = DateTimeFormatter.RFC_1123_DATE_TIME
             val expires = if (cookie.expires != null && cookie.expires > 0) {
-                ZonedDateTime.now().plusSeconds(cookie.expires.toLong()).format(formatter)
+                // cookie.expires is a Unix epoch timestamp (seconds since Jan 1, 1970)
+                ZonedDateTime.ofInstant(
+                    Instant.ofEpochSecond(cookie.expires.toLong()),
+                    ZoneId.systemDefault(),
+                ).format(formatter)
             } else {
                 "Fri, 31 Dec 9999 23:59:59 GMT"
             }

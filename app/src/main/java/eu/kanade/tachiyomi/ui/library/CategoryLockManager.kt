@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.ui.library
 
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
 import uy.kohesive.injekt.injectLazy
+import java.util.concurrent.ConcurrentHashMap
 
 // SY -->
 /**
@@ -11,11 +12,11 @@ import uy.kohesive.injekt.injectLazy
 object CategoryLockManager {
     private val securityPreferences: SecurityPreferences by injectLazy()
 
-    // Set of category IDs that are currently unlocked in this session
-    private val unlockedCategories = mutableSetOf<Long>()
+    // Thread-safe set of category IDs that are currently unlocked in this session
+    private val unlockedCategories = ConcurrentHashMap.newKeySet<Long>()
 
-    // Map of category ID to unlock timestamp (in milliseconds)
-    private val unlockTimestamps = mutableMapOf<Long, Long>()
+    // Thread-safe map of category ID to unlock timestamp (in milliseconds)
+    private val unlockTimestamps = ConcurrentHashMap<Long, Long>()
 
     /**
      * Check if a category is currently unlocked in this session
@@ -55,8 +56,15 @@ object CategoryLockManager {
     private fun checkTimeouts() {
         val timeoutMinutes = securityPreferences.categoryLockTimeout().get()
 
-        // 0 means never re-lock during session, -1 means always require PIN (no session unlock)
-        if (timeoutMinutes <= 0) return
+        // -1 means always require PIN (immediately lock everything)
+        if (timeoutMinutes == -1) {
+            unlockedCategories.clear()
+            unlockTimestamps.clear()
+            return
+        }
+
+        // 0 means never re-lock during session
+        if (timeoutMinutes == 0) return
 
         val timeoutMillis = timeoutMinutes * 60 * 1000L
         val currentTime = System.currentTimeMillis()

@@ -4,6 +4,8 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
+import logcat.LogPriority
+import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.injectLazy
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -180,6 +182,7 @@ object CategoryLockCrypto {
             val decryptedPin = decryptPin(encryptedPin)
             decryptedPin == inputPin
         } catch (e: Exception) {
+            logcat(LogPriority.WARN, e) { "Failed to verify PIN for category $categoryId" }
             false
         }
     }
@@ -199,6 +202,116 @@ object CategoryLockCrypto {
         generateKey()
         // Clear all stored PINs since they can't be decrypted anymore
         securityPreferences.categoryLockPins().set(emptySet())
+        securityPreferences.categoryLockMasterPin().set("")
+    }
+
+    /**
+     * Set the master recovery PIN. This PIN can unlock any locked category.
+     */
+    fun setMasterPin(pin: String) {
+        require(pin.length in 4..10) { "Master PIN must be 4-10 digits" }
+        require(pin.all { it.isDigit() }) { "Master PIN must contain only digits" }
+
+        val encryptedPin = encryptPin(pin)
+        securityPreferences.categoryLockMasterPin().set(encryptedPin)
+    }
+
+    /**
+     * Remove the master recovery PIN
+     */
+    fun removeMasterPin() {
+        securityPreferences.categoryLockMasterPin().set("")
+    }
+
+    /**
+     * Check if a master PIN is set
+     */
+    fun hasMasterPin(): Boolean {
+        return securityPreferences.categoryLockMasterPin().get().isNotEmpty()
+    }
+
+    /**
+     * Verify if the input PIN matches the master PIN
+     */
+    fun verifyMasterPin(inputPin: String): Boolean {
+        val encryptedMasterPin = securityPreferences.categoryLockMasterPin().get()
+        if (encryptedMasterPin.isEmpty()) return false
+
+        return try {
+            val decryptedPin = decryptPin(encryptedMasterPin)
+            decryptedPin == inputPin
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Get failed attempt count for a category
+     */
+    fun getFailedAttempts(categoryId: Long): Int {
+        val attemptsSet = securityPreferences.categoryLockFailedAttempts().get()
+        attemptsSet.forEach { entry ->
+            val parts = entry.split(":", limit = 2)
+            if (parts.size == 2) {
+                val id = parts[0].toLongOrNull()
+                val count = parts[1].toIntOrNull()
+                if (id == categoryId && count != null) {
+                    return count
+                }
+            }
+        }
+        return 0
+    }
+
+    /**
+     * Increment failed attempt count for a category
+     */
+    fun incrementFailedAttempts(categoryId: Long): Int {
+        val attemptsMap = getFailedAttemptsMap().toMutableMap()
+        val currentCount = attemptsMap[categoryId] ?: 0
+        val newCount = currentCount + 1
+        attemptsMap[categoryId] = newCount
+        saveFailedAttemptsMap(attemptsMap)
+        return newCount
+    }
+
+    /**
+     * Reset failed attempt count for a category (called on successful unlock)
+     */
+    fun resetFailedAttempts(categoryId: Long) {
+        val attemptsMap = getFailedAttemptsMap().toMutableMap()
+        attemptsMap.remove(categoryId)
+        saveFailedAttemptsMap(attemptsMap)
+    }
+
+    /**
+     * Reset all failed attempt counters
+     */
+    fun resetAllFailedAttempts() {
+        securityPreferences.categoryLockFailedAttempts().set(emptySet())
+    }
+
+    private fun getFailedAttemptsMap(): Map<Long, Int> {
+        val attemptsSet = securityPreferences.categoryLockFailedAttempts().get()
+        val map = mutableMapOf<Long, Int>()
+        attemptsSet.forEach { entry ->
+            val parts = entry.split(":", limit = 2)
+            if (parts.size == 2) {
+                val categoryId = parts[0].toLongOrNull()
+                val count = parts[1].toIntOrNull()
+                if (categoryId != null && count != null) {
+                    map[categoryId] = count
+                }
+            }
+        }
+        return map
+    }
+
+    private fun saveFailedAttemptsMap(map: Map<Long, Int>) {
+        val stringSet = map.map { (categoryId, count) ->
+            "$categoryId:$count"
+        }.toSet()
+        securityPreferences.categoryLockFailedAttempts().set(stringSet)
     }
 }
 // SY <--

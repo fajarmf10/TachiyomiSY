@@ -988,6 +988,7 @@ class LibraryScreenModel(
     ): List<LibraryItem> {
         return if (unfiltered.isNotEmpty() && !query.isNullOrBlank()) {
             val parsedQuery = searchEngine.parseQuery(query)
+            // NOTE: This list MUST be sorted for binarySearch to work correctly (SQL query has ORDER BY)
             val mangaWithMetaIds = getIdsOfFavoriteMangaWithMetadata.await()
             val tracks = if (loggedInTrackServices.isNotEmpty()) {
                 getTracks.await().groupBy { it.mangaId }
@@ -1287,13 +1288,22 @@ class LibraryScreenModel(
     /**
      * Attempt to unlock a category with the provided PIN.
      * Returns true if successful, false if PIN is incorrect.
+     * Tracks failed attempts and supports master PIN as fallback.
      */
     fun unlockCategory(categoryId: Long, pin: String): Boolean {
-        return if (CategoryLockCrypto.verifyPin(categoryId, pin)) {
+        // Check if the PIN matches the category PIN or the master PIN
+        val categoryPinValid = CategoryLockCrypto.verifyPin(categoryId, pin)
+        val masterPinValid = CategoryLockCrypto.verifyMasterPin(pin)
+
+        return if (categoryPinValid || masterPinValid) {
+            // Successful unlock - reset failed attempts counter
+            CategoryLockCrypto.resetFailedAttempts(categoryId)
             CategoryLockManager.unlock(categoryId)
             closeDialog()
             true
         } else {
+            // Failed unlock - increment failed attempts counter
+            CategoryLockCrypto.incrementFailedAttempts(categoryId)
             false
         }
     }

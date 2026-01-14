@@ -125,15 +125,15 @@ class DownloadStore(
                 logcat(LogPriority.INFO) { "Migration to database completed" }
             }
 
-            // Mark migration as complete and clear SharedPreferences
+            // Mark migration as complete BEFORE clearing to prevent data loss on crash
             preferences.edit {
                 putBoolean("queue_migrated_to_db", true)
-                // Clear all download entries but keep the migration flag
-                preferences.all.keys.forEach { key ->
-                    if (key != "queue_migrated_to_db") {
-                        remove(key)
-                    }
-                }
+            }
+
+            // Then clear old entries in a separate transaction
+            val keysToRemove = preferences.all.keys.filter { it != "queue_migrated_to_db" }
+            preferences.edit {
+                keysToRemove.forEach { remove(it) }
             }
         }
 

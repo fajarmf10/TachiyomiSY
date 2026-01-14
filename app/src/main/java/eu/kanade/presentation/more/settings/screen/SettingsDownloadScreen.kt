@@ -320,7 +320,6 @@ object SettingsDownloadScreen : SearchableSettings {
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.pref_cleanup_now),
                     subtitle = stringResource(MR.strings.pref_cleanup_now_summary),
-                    enabled = cleanupOnStartup,
                     onClick = {
                         context.toast(MR.strings.cleanup_temp_folders_started)
                         scope.launch {

@@ -80,7 +80,8 @@ class TempFolderCleanupWorker(
             var cleaned = 0
             dir.listFiles().orEmpty().forEach { file ->
                 val name = file.name.orEmpty()
-                if (name.endsWith(Downloader.TMP_DIR_SUFFIX) && file.lastModified() < cutoffMillis) {
+                val lastMod = file.lastModified()
+                if (name.endsWith(Downloader.TMP_DIR_SUFFIX) && lastMod > 0 && lastMod < cutoffMillis) {
                     if (file.delete()) {
                         cleaned += 1
                     }

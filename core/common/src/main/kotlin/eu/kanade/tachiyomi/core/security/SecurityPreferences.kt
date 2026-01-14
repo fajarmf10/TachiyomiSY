@@ -38,14 +38,43 @@ class SecurityPreferences(
     fun cbzPassword() = this.preferenceStore.getString(Preference.appStateKey("cbz_password"), "")
 
     // Category lock preferences
+    // SECURITY NOTE: Category PINs are stored in SharedPreferences using the privateKey prefix
+    // to exclude them from backups. The PIN values themselves are encrypted using Android KeyStore
+    // (AES-256) via CategoryLockCrypto before storage. For enhanced security, consider migrating
+    // to EncryptedSharedPreferences in the future to encrypt both keys and values at rest.
     fun categoryLockPins() = preferenceStore.getStringSet(
         Preference.privateKey("category_lock_pins"),
         emptySet(),
     )
 
+    /**
+     * Category lock timeout in seconds.
+     * Semantics:
+     * - 0 = immediate lock (default): categories are locked immediately when leaving them
+     * - -1 = never timeout: categories remain unlocked until app process terminates
+     * - >0 = custom duration: categories auto-lock after N seconds of inactivity
+     */
     fun categoryLockTimeout() = preferenceStore.getInt("category_lock_timeout", 0)
 
     fun showLockedCategories() = preferenceStore.getBoolean("show_locked_categories", true)
+
+    /**
+     * Failed PIN attempt counter. Stored using appStateKey since it's internal app state.
+     * Format: "categoryId:attemptCount" pairs stored in a StringSet.
+     */
+    fun categoryLockFailedAttempts() = preferenceStore.getStringSet(
+        Preference.appStateKey("category_lock_failed_attempts"),
+        emptySet(),
+    )
+
+    /**
+     * Master recovery PIN for category locks. Encrypted using Android KeyStore like category PINs.
+     * Stored using privateKey to exclude from backups. The PIN value is encrypted via CategoryLockCrypto.
+     */
+    fun categoryLockMasterPin() = preferenceStore.getString(
+        Preference.privateKey("category_lock_master_pin"),
+        "",
+    )
     // SY <--
 
     /**

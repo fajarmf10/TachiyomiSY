@@ -34,7 +34,7 @@ class DownloadQueueRepositoryImpl(
     }
 
     private fun calculateBackoffDelay(retryCount: Int): Long {
-        // Progressive backoff: 2min, 4min, 8min, 16min, 32min, 1hr, 2hr, 6hr (cap)
+        // Progressive backoff: 2min, 4min, 8min, 16min, 32min, ~1hr, ~2hr, ~4hr (capped at 6hr)
         val minutes = (2.0.pow(retryCount.coerceAtMost(7))).toLong() * 2
         return minutes.coerceAtMost(360) * 60 * 1000 // Max 6 hours
     }
@@ -64,7 +64,16 @@ class DownloadQueueRepositoryImpl(
     }
 
     override suspend fun add(mangaId: Long, chapterId: Long, priority: Int): Long? {
-        return handler.awaitOneOrNullExecutable {
+        // Check if chapter is already in queue (per interface contract: return null if already exists)
+        val existing = handler.awaitOneOrNull {
+            download_queueQueries.getByChapterId(chapterId, mapper = ::mapDownloadQueueEntry)
+        }
+        if (existing != null) {
+            return null
+        }
+
+        // Insert new entry and return its ID
+        return handler.awaitOneOrNullExecutable(inTransaction = true) {
             download_queueQueries.insert(
                 mangaId = mangaId,
                 chapterId = chapterId,

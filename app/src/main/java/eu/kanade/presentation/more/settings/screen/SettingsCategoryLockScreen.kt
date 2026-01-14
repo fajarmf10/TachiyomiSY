@@ -6,11 +6,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.library.components.CategoryPinDialog
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.tachiyomi.util.storage.CategoryLockCrypto
@@ -33,56 +30,104 @@ object SettingsCategoryLockScreen : SearchableSettings {
     @Composable
     override fun getPreferences(): List<Preference> {
         val getCategories = remember { Injekt.get<GetCategories>() }
-        val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
-        val scope = rememberCoroutineScope()
 
         val categories by getCategories.subscribe().collectAsState(initial = emptyList())
-        var showPinDialog by remember { mutableStateOf<Pair<Category, Boolean>?>(null) }
+
+        val hasMasterPin = CategoryLockCrypto.hasMasterPin()
 
         return listOf(
+            Preference.PreferenceGroup(
+                title = stringResource(SYMR.strings.category_lock_master_pin),
+                preferenceItems = listOf(
+                    kotlin.run {
+                        var showMasterPinDialog by remember { mutableStateOf(false) }
+                        if (showMasterPinDialog) {
+                            CategoryPinDialog(
+                                categoryName = stringResource(SYMR.strings.category_lock_master_pin),
+                                onDismiss = { showMasterPinDialog = false },
+                                onPinEntered = { pin ->
+                                    try {
+                                        CategoryLockCrypto.setMasterPin(pin)
+                                        context.toast(SYMR.strings.category_lock_master_pin_set)
+                                        showMasterPinDialog = false
+                                        true
+                                    } catch (e: Exception) {
+                                        context.toast(e.message ?: "Error setting master PIN")
+                                        false
+                                    }
+                                },
+                                isSettingPin = true,
+                            )
+                        }
+                        Preference.PreferenceItem.TextPreference(
+                            title = stringResource(SYMR.strings.category_lock_master_pin),
+                            subtitle = if (hasMasterPin) {
+                                stringResource(SYMR.strings.category_lock_master_pin_change)
+                            } else {
+                                stringResource(SYMR.strings.category_lock_master_pin_set)
+                            },
+                            onClick = {
+                                showMasterPinDialog = true
+                            },
+                        )
+                    },
+                ).let {
+                    if (hasMasterPin) {
+                        it + Preference.PreferenceItem.TextPreference(
+                            title = stringResource(SYMR.strings.category_lock_master_pin_remove),
+                            onClick = {
+                                CategoryLockCrypto.removeMasterPin()
+                                context.toast(SYMR.strings.category_lock_master_pin_removed)
+                            },
+                        )
+                    } else {
+                        it
+                    }
+                }.toImmutableList(),
+            ),
             Preference.PreferenceGroup(
                 title = stringResource(SYMR.strings.category_lock_settings),
                 preferenceItems = categories
                     .filter { !it.isSystemCategory }
                     .map { category ->
-                        val isLocked = CategoryLockCrypto.hasLock(category.id)
-
-                        Preference.PreferenceItem.TextPreference(
-                            title = category.name,
-                            subtitle = if (isLocked) {
-                                stringResource(SYMR.strings.category_lock_change_pin)
-                            } else {
-                                stringResource(SYMR.strings.category_lock_set_pin, category.name)
-                            },
-                            onClick = {
-                                showPinDialog = category to true
-                            },
-                        )
+                        kotlin.run {
+                            val isLocked = CategoryLockCrypto.hasLock(category.id)
+                            var showPinDialog by remember { mutableStateOf(false) }
+                            if (showPinDialog) {
+                                CategoryPinDialog(
+                                    categoryName = category.name,
+                                    onDismiss = { showPinDialog = false },
+                                    onPinEntered = { pin ->
+                                        try {
+                                            CategoryLockCrypto.setPinForCategory(category.id, pin)
+                                            context.toast(SYMR.strings.category_lock_pin_set)
+                                            showPinDialog = false
+                                            true
+                                        } catch (e: Exception) {
+                                            context.toast(e.message ?: "Error setting PIN")
+                                            false
+                                        }
+                                    },
+                                    isSettingPin = true,
+                                )
+                            }
+                            Preference.PreferenceItem.TextPreference(
+                                title = category.name,
+                                subtitle = if (isLocked) {
+                                    stringResource(SYMR.strings.category_lock_change_pin)
+                                } else {
+                                    stringResource(SYMR.strings.category_lock_set_pin, category.name)
+                                },
+                                onClick = {
+                                    showPinDialog = true
+                                },
+                            )
+                        }
                     }
                     .toImmutableList(),
             ),
-        ).also {
-            // Show PIN dialog if needed
-            showPinDialog?.let { (category, isSettingPin) ->
-                CategoryPinDialog(
-                    categoryName = category.name,
-                    onDismiss = { showPinDialog = null },
-                    onPinEntered = { pin ->
-                        try {
-                            CategoryLockCrypto.setPinForCategory(category.id, pin)
-                            context.toast(SYMR.strings.category_lock_pin_set)
-                            showPinDialog = null
-                            true
-                        } catch (e: Exception) {
-                            context.toast(e.message ?: "Error setting PIN")
-                            false
-                        }
-                    },
-                    isSettingPin = true,
-                )
-            }
-        }
+        )
     }
 }
 // SY <--

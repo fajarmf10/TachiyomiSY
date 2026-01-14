@@ -24,6 +24,8 @@ class GetChaptersForAutoDownload(
         val chaptersPerManga = downloadPreferences.autoDownloadWhileReading().get().coerceAtLeast(1)
 
         return historyRepository.getHistoryForAutoDownload(readAfter)
+            .sortedByDescending { it.readAt }
+            .distinctBy { it.mangaId }
             .mapNotNull { history ->
                 val manga = getManga.await(history.mangaId) ?: return@mapNotNull null
                 val chapters = getNextChapters.await(

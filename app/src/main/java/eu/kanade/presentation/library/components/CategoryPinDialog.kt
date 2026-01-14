@@ -160,8 +160,11 @@ fun CategoryPinDialog(
                         )
                         IconButton(
                             onClick = {
-                                if (showConfirm && confirmPin.isNotEmpty()) {
-                                    confirmPin = confirmPin.dropLast(1)
+                                if (showConfirm) {
+                                    if (confirmPin.isNotEmpty()) {
+                                        confirmPin = confirmPin.dropLast(1)
+                                    }
+                                    // Don't allow editing first PIN during confirmation
                                 } else if (pin.isNotEmpty()) {
                                     pin = pin.dropLast(1)
                                 }
@@ -180,6 +183,9 @@ fun CategoryPinDialog(
         },
         confirmButton = {
             val wrongPinText = stringResource(SYMR.strings.category_lock_wrong_pin)
+            val pinRequirementText = stringResource(SYMR.strings.category_lock_pin_requirement)
+            val pinsMismatchText = stringResource(SYMR.strings.category_lock_pins_mismatch)
+            val failedToSetText = stringResource(SYMR.strings.category_lock_failed_to_set)
             val nextText = stringResource(SYMR.strings.action_next)
             val okText = stringResource(MR.strings.action_ok)
 
@@ -192,7 +198,7 @@ fun CategoryPinDialog(
                                 showConfirm = true
                                 errorMessage = null
                             } else {
-                                errorMessage = "PIN must be 4-10 digits"
+                                errorMessage = pinRequirementText
                                 coroutineScope.launch {
                                     shakeOffset.animateTo(
                                         targetValue = 10f,
@@ -215,13 +221,13 @@ fun CategoryPinDialog(
                                 if (success) {
                                     onDismiss()
                                 } else {
-                                    errorMessage = "Failed to set PIN"
+                                    errorMessage = failedToSetText
                                     pin = ""
                                     confirmPin = ""
                                     showConfirm = false
                                 }
                             } else {
-                                errorMessage = "PINs do not match"
+                                errorMessage = pinsMismatchText
                                 confirmPin = ""
                                 coroutineScope.launch {
                                     shakeOffset.animateTo(10f, spring(stiffness = Spring.StiffnessHigh))
