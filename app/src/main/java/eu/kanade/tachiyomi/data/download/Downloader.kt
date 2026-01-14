@@ -380,7 +380,17 @@ class Downloader(
         )
         val tmpDirName = chapterDirname + TMP_DIR_SUFFIX
         mangaDir.findFile(tmpDirName)?.delete()
-        val tmpDir = mangaDir.createDirectory(tmpDirName)!!
+        val tmpDir = mangaDir.createDirectory(tmpDirName) ?: run {
+            download.status = Download.State.ERROR
+            notifier.onError(
+                "Failed to create temporary directory",
+                download.chapter.name,
+                download.manga.title,
+                download.manga.id,
+            )
+            recordFailure(download, "Failed to create temporary directory", DownloadErrorType.UNKNOWN)
+            return
+        }
 
         try {
             // If the page list already exists, start from the file
