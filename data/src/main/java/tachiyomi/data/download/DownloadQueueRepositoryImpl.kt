@@ -64,24 +64,33 @@ class DownloadQueueRepositoryImpl(
     }
 
     override suspend fun add(mangaId: Long, chapterId: Long, priority: Int): Long? {
-        // Check if chapter is already in queue (per interface contract: return null if already exists)
-        val existing = handler.awaitOneOrNull {
-            download_queueQueries.getByChapterId(chapterId, mapper = ::mapDownloadQueueEntry)
+        // Check if chapter is already in queue and insert atomically within a transaction
+        // (per interface contract: return null if already exists)
+        return handler.await(inTransaction = true) {
+            // Check if entry already exists (inside transaction to prevent race condition)
+            val existing = download_queueQueries.getByChapterId(
+                chapterId,
+                mapper = ::mapDownloadQueueEntry,
+            ).executeAsOneOrNull()
+            
+            if (existing != null) {
+                // Entry already exists, return null per interface contract
+                null
+            } else {
+                // Insert new entry
+                download_queueQueries.insert(
+                    mangaId = mangaId,
+                    chapterId = chapterId,
+                    priority = priority.toLong(),
+                    addedAt = System.currentTimeMillis(),
+                )
+                // Fetch and return the newly inserted entry's ID
+                download_queueQueries.getByChapterId(
+                    chapterId,
+                    mapper = ::mapDownloadQueueEntry,
+                ).executeAsOneOrNull()?.id
+            }
         }
-        if (existing != null) {
-            return null
-        }
-
-        // Insert new entry and return its ID
-        return handler.awaitOneOrNullExecutable(inTransaction = true) {
-            download_queueQueries.insert(
-                mangaId = mangaId,
-                chapterId = chapterId,
-                priority = priority.toLong(),
-                addedAt = System.currentTimeMillis(),
-            )
-            download_queueQueries.getByChapterId(chapterId, mapper = ::mapDownloadQueueEntry)
-        }?.id
     }
 
     override suspend fun addAll(entries: List<Pair<Long, Long>>, priority: Int) {
