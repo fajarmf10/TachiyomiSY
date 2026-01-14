@@ -53,14 +53,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import android.content.ClipData
-import android.widget.Toast
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.clipboard.ClipEntry
-import androidx.compose.ui.clipboard.Clipboard
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.capitalize
@@ -75,6 +69,7 @@ import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.presentation.manga.components.MangaCover
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.data.track.model.TrackSearch
+import eu.kanade.tachiyomi.util.system.copyToClipboard
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.ScrollbarLazyColumn
@@ -244,8 +239,6 @@ private fun SearchResultItem(
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    val clipboard: Clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val type = trackSearch.publishing_type.toLowerCase(Locale.current).capitalize(Locale.current)
     val status = trackSearch.publishing_status.toLowerCase(Locale.current).capitalize(Locale.current)
@@ -300,14 +293,7 @@ private fun SearchResultItem(
                         expanded = dropDownMenuExpanded,
                         onCollapseMenu = { dropDownMenuExpanded = false },
                         onCopyName = {
-                            scope.launch {
-                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Track Title", trackSearch.title)))
-                                Toast.makeText(
-                                    context,
-                                    context.stringResource(MR.strings.copied_to_clipboard_plain),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                            }
+                            context.copyToClipboard("Track Title", trackSearch.title)
                         },
                         onOpenInBrowser = {
                             val url = trackSearch.tracking_url
