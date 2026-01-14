@@ -7,7 +7,11 @@ import android.os.Build
 import android.provider.Settings
 import android.webkit.WebStorage
 import android.webkit.WebView
-import android.widget.Toast
+import eu.kanade.presentation.more.settings.Preference
+import eu.kanade.tachiyomi.network.POST
+import eu.kanade.tachiyomi.network.awaitSuccess
+import eu.kanade.tachiyomi.network.interceptor.FlareSolverrInterceptor
+import eu.kanade.tachiyomi.network.parseAs
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,13 +38,14 @@ import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.extension.interactor.TrustExtension
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.source.service.SourcePreferences.DataSaver
-import eu.kanade.presentation.more.settings.Preference
+import tachiyomi.core.common.preference.Preference as BasePreference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import eu.kanade.presentation.more.settings.screen.advanced.ClearDatabaseScreen
 import eu.kanade.presentation.more.settings.screen.debug.DebugInfoScreen
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
 import eu.kanade.tachiyomi.data.download.DownloadCache
-import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.NetworkPreferences
@@ -59,7 +64,6 @@ import eu.kanade.tachiyomi.network.PREF_DOH_SHECAN
 import eu.kanade.tachiyomi.source.AndroidSourceManager
 import eu.kanade.tachiyomi.ui.more.OnboardingScreen
 import eu.kanade.tachiyomi.util.CrashLogUtil
-import eu.kanade.tachiyomi.util.storage.DiskUtil
 import eu.kanade.tachiyomi.util.system.GLUtil
 import eu.kanade.tachiyomi.util.system.isDevFlavor
 import eu.kanade.tachiyomi.util.system.isPreviewBuildType
@@ -80,20 +84,19 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import okhttp3.Headers
-import tachiyomi.core.common.i18n.pluralStringResource
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.ImageUtil
 import tachiyomi.core.common.util.system.logcat
-import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.library.service.LibraryPreferences
-import tachiyomi.domain.manga.interactor.GetAllManga
 import tachiyomi.domain.manga.interactor.ResetViewerFlags
-import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.LabeledCheckbox
@@ -101,6 +104,8 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import uy.kohesive.injekt.injectLazy
+
 import java.io.File
 
 object SettingsAdvancedScreen : SearchableSettings {
@@ -203,6 +208,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                                 }
                                 context.startActivity(intent)
                             } catch (e: ActivityNotFoundException) {
+                                logcat(LogPriority.ERROR, e)
                                 context.toast(MR.strings.battery_optimization_setting_activity_not_found)
                             }
                         } else {
@@ -248,11 +254,17 @@ object SettingsAdvancedScreen : SearchableSettings {
     private fun getNetworkGroup(
         networkPreferences: NetworkPreferences,
     ): Preference.PreferenceGroup {
+        val scope = rememberCoroutineScope()
+
         val context = LocalContext.current
         val networkHelper = remember { Injekt.get<NetworkHelper>() }
 
         val userAgentPref = networkPreferences.defaultUserAgent()
         val userAgent by userAgentPref.collectAsState()
+
+        val flareSolverrUrlPref = networkPreferences.flareSolverrUrl()
+        val enableFlareSolverrPref = networkPreferences.enableFlareSolverr()
+        val enableFlareSolverr by enableFlareSolverrPref.collectAsState()
 
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.label_network),
@@ -332,6 +344,27 @@ object SettingsAdvancedScreen : SearchableSettings {
                         context.toast(MR.strings.requires_app_restart)
                     },
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = enableFlareSolverrPref,
+                    title = stringResource(MR.strings.pref_enable_flare_solverr),
+                    subtitle = stringResource(MR.strings.pref_enable_flare_solverr_summary)
+                ),
+                Preference.PreferenceItem.EditTextPreference(
+                    preference = flareSolverrUrlPref,
+                    title = stringResource(MR.strings.pref_flare_solverr_url),
+                    enabled = enableFlareSolverr,
+                    subtitle = stringResource(MR.strings.pref_flare_solverr_url_summary),
+                ),
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent),
+                    enabled = enableFlareSolverr,
+                    subtitle = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent_summary),
+                    onClick = {
+                        scope.launch {
+                            testFlareSolverrAndUpdateUserAgent(flareSolverrUrlPref, userAgentPref, context)
+                        }
+                    },
+                )
             ),
         )
     }
@@ -578,82 +611,82 @@ object SettingsAdvancedScreen : SearchableSettings {
         )
     }
 
-    @Composable
-    private fun getDownloaderGroup(): Preference.PreferenceGroup {
-        val scope = rememberCoroutineScope()
-        val context = LocalContext.current
-        var dialogOpen by remember { mutableStateOf(false) }
-        if (dialogOpen) {
-            CleanupDownloadsDialog(
-                onDismissRequest = { dialogOpen = false },
-                onCleanupDownloads = { removeRead, removeNonFavorite ->
-                    dialogOpen = false
-                    if (job?.isActive == true) return@CleanupDownloadsDialog
-                    context.toast(SYMR.strings.starting_cleanup)
-                    job = scope.launchNonCancellable {
-                        val mangaList = Injekt.get<GetAllManga>().await()
-                        val downloadManager: DownloadManager = Injekt.get()
-                        var foldersCleared = 0
-                        Injekt.get<SourceManager>().getOnlineSources().forEach { source ->
-                            val mangaFolders = downloadManager.getMangaFolders(source)
-                            val sourceManga = mangaList
-                                .asSequence()
-                                .filter { it.source == source.id }
-                                .map { it to DiskUtil.buildValidFilename(it.ogTitle) }
-                                .toList()
-
-                            mangaFolders.forEach mangaFolder@{ mangaFolder ->
-                                val manga =
-                                    sourceManga.find { (_, folderName) ->
-                                        folderName == mangaFolder.name
-                                    }?.first
-                                if (manga == null) {
-                                    // download is orphaned delete it
-                                    foldersCleared += 1 + (
-                                        mangaFolder.listFiles()
-                                            .orEmpty().size
-                                        )
-                                    mangaFolder.delete()
-                                } else {
-                                    val chapterList = Injekt.get<GetChaptersByMangaId>().await(manga.id)
-                                    foldersCleared += downloadManager.cleanupChapters(
-                                        chapterList,
-                                        manga,
-                                        source,
-                                        removeRead,
-                                        removeNonFavorite,
-                                    )
-                                }
-                            }
-                        }
-                        withUIContext {
-                            val cleanupString =
-                                if (foldersCleared == 0) {
-                                    context.stringResource(SYMR.strings.no_folders_to_cleanup)
-                                } else {
-                                    context.pluralStringResource(
-                                        SYMR.plurals.cleanup_done,
-                                        foldersCleared,
-                                        foldersCleared,
-                                    )
-                                }
-                            context.toast(cleanupString, Toast.LENGTH_LONG)
-                        }
-                    }
-                },
-            )
-        }
-        return Preference.PreferenceGroup(
-            title = stringResource(MR.strings.download_notifier_downloader_title),
-            preferenceItems = persistentListOf(
-                Preference.PreferenceItem.TextPreference(
-                    title = stringResource(SYMR.strings.clean_up_downloaded_chapters),
-                    subtitle = stringResource(SYMR.strings.delete_unused_chapters),
-                    onClick = { dialogOpen = true },
-                ),
-            ),
-        )
-    }
+//    @Composable
+//    private fun getDownloaderGroup(): Preference.PreferenceGroup {
+//        val scope = rememberCoroutineScope()
+//        val context = LocalContext.current
+//        var dialogOpen by remember { mutableStateOf(false) }
+//        if (dialogOpen) {
+//            CleanupDownloadsDialog(
+//                onDismissRequest = { dialogOpen = false },
+//                onCleanupDownloads = { removeRead, removeNonFavorite ->
+//                    dialogOpen = false
+//                    if (job?.isActive == true) return@CleanupDownloadsDialog
+//                    context.toast(SYMR.strings.starting_cleanup)
+//                    job = scope.launchNonCancellable {
+//                        val mangaList = Injekt.get<GetAllManga>().await()
+//                        val downloadManager: DownloadManager = Injekt.get()
+//                        var foldersCleared = 0
+//                        Injekt.get<SourceManager>().getOnlineSources().forEach { source ->
+//                            val mangaFolders = downloadManager.getMangaFolders(source)
+//                            val sourceManga = mangaList
+//                                .asSequence()
+//                                .filter { it.source == source.id }
+//                                .map { it to DiskUtil.buildValidFilename(it.ogTitle) }
+//                                .toList()
+//
+//                            mangaFolders.forEach mangaFolder@{ mangaFolder ->
+//                                val manga =
+//                                    sourceManga.find { (_, folderName) ->
+//                                        folderName == mangaFolder.name
+//                                    }?.first
+//                                if (manga == null) {
+//                                    // download is orphaned delete it
+//                                    foldersCleared += 1 + (
+//                                        mangaFolder.listFiles()
+//                                            .orEmpty().size
+//                                        )
+//                                    mangaFolder.delete()
+//                                } else {
+//                                    val chapterList = Injekt.get<GetChaptersByMangaId>().await(manga.id)
+//                                    foldersCleared += downloadManager.cleanupChapters(
+//                                        chapterList,
+//                                        manga,
+//                                        source,
+//                                        removeRead,
+//                                        removeNonFavorite,
+//                                    )
+//                                }
+//                            }
+//                        }
+//                        withUIContext {
+//                            val cleanupString =
+//                                if (foldersCleared == 0) {
+//                                    context.stringResource(SYMR.strings.no_folders_to_cleanup)
+//                                } else {
+//                                    context.pluralStringResource(
+//                                        SYMR.plurals.cleanup_done,
+//                                        foldersCleared,
+//                                        foldersCleared,
+//                                    )
+//                                }
+//                            context.toast(cleanupString, Toast.LENGTH_LONG)
+//                        }
+//                    }
+//                },
+//            )
+//        }
+//        return Preference.PreferenceGroup(
+//            title = stringResource(MR.strings.download_notifier_downloader_title),
+//            preferenceItems = persistentListOf(
+//                Preference.PreferenceItem.TextPreference(
+//                    title = stringResource(SYMR.strings.clean_up_downloaded_chapters),
+//                    subtitle = stringResource(SYMR.strings.delete_unused_chapters),
+//                    onClick = { dialogOpen = true },
+//                ),
+//            ),
+//        )
+//    }
 
     @Composable
     private fun getDataSaverGroup(): Preference.PreferenceGroup {
@@ -847,6 +880,58 @@ object SettingsAdvancedScreen : SearchableSettings {
                 ),
             ),
         )
+    }
+
+    private suspend fun testFlareSolverrAndUpdateUserAgent(
+        flareSolverrUrlPref: BasePreference<String>,
+        userAgentPref: BasePreference<String>,
+        context: android.content.Context
+    ) {
+        val networkHelper: NetworkHelper by injectLazy()
+        val json: Json by injectLazy()
+        val jsonMediaType = "application/json".toMediaType()
+
+        try {
+            withContext(Dispatchers.IO) {
+                val flareSolverUrl = flareSolverrUrlPref.get().trim()
+                val flareSolverResponse = with(json) {
+                    networkHelper.client.newCall(
+                        POST(
+                            url = flareSolverUrl,
+                            body =
+                                Json.encodeToString(
+                                    FlareSolverrInterceptor.CFClearance.FlareSolverRequest(
+                                        "request.get",
+                                        "https://www.google.com/",
+                                        returnOnlyCookies = true,
+                                        maxTimeout = 60000,
+                                    ),
+                                ).toRequestBody(jsonMediaType),
+                        ),
+                    ).awaitSuccess().parseAs<FlareSolverrInterceptor.CFClearance.FlareSolverResponse>()
+                }
+
+                if (flareSolverResponse.solution.status in 200..299) {
+                    // Set the user agent to the one provided by FlareSolverr
+                    userAgentPref.set(flareSolverResponse.solution.userAgent)
+
+                    withContext(Dispatchers.Main) {
+                        context.toast(SYMR.strings.flare_solver_user_agent_update_success)
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        context.toast(SYMR.strings.flare_solver_update_user_agent_failed)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, tag = "FlareSolverr") {
+                "Failed to resolve with FlareSolverr: ${e.message}"
+            }
+            withContext(Dispatchers.Main) {
+                context.toast(SYMR.strings.flare_solver_error)
+            }
+        }
     }
 
     private var job: Job? = null

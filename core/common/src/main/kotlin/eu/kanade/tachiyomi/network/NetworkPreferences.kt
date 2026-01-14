@@ -12,6 +12,14 @@ class NetworkPreferences(
         return preferenceStore.getBoolean("verbose_logging", verboseLogging)
     }
 
+    fun enableFlareSolverr(): Preference<Boolean> {
+        return preferenceStore.getBoolean("enable_flaresolverr", false)
+    }
+
+    fun flareSolverrUrl(): Preference<String> {
+        return preferenceStore.getString("flaresolverr_url", "http://localhost:8191/v1")
+    }
+
     fun dohProvider(): Preference<Int> {
         return preferenceStore.getInt("doh_provider", -1)
     }
