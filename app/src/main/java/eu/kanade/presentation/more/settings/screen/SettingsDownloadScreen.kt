@@ -297,7 +297,7 @@ object SettingsDownloadScreen : SearchableSettings {
         )
     }
 
-    `@Composable`
+    @Composable
     private fun getStorageCleanupGroup(
         downloadPreferences: DownloadPreferences,
     ): Preference.PreferenceGroup {
