@@ -41,9 +41,10 @@ class TempFolderCleanupWorker(
             return cleanupInDirectory(downloadsDir, cutoff)
         }
 
-        fun setupPeriodicWork(context: Context) {
+        fun setupPeriodicWork(context: Context, enabled: Boolean? = null) {
             val preferences = Injekt.get<DownloadPreferences>()
-            if (!preferences.cleanupOrphanedFoldersOnStartup().get()) {
+            val isEnabled = enabled ?: preferences.cleanupOrphanedFoldersOnStartup().get()
+            if (!isEnabled) {
                 WorkManager.getInstance(context).cancelUniqueWork(TAG)
                 return
             }

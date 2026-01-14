@@ -303,8 +303,6 @@ object SettingsDownloadScreen : SearchableSettings {
     ): Preference.PreferenceGroup {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
-
-        val cleanupOnStartup by downloadPreferences.cleanupOrphanedFoldersOnStartup().collectAsState()
         var isCleaning by rememberSaveable { mutableStateOf(false) }
 
         return Preference.PreferenceGroup(
@@ -314,8 +312,8 @@ object SettingsDownloadScreen : SearchableSettings {
                     preference = downloadPreferences.cleanupOrphanedFoldersOnStartup(),
                     title = stringResource(MR.strings.pref_cleanup_on_startup),
                     subtitle = stringResource(MR.strings.pref_cleanup_on_startup_summary),
-                    onValueChanged = {
-                        TempFolderCleanupWorker.setupPeriodicWork(context)
+                    onValueChanged = { newValue ->
+                        TempFolderCleanupWorker.setupPeriodicWork(context, newValue)
                         true
                     },
                 ),
