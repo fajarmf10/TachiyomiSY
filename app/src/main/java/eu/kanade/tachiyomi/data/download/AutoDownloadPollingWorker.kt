@@ -48,9 +48,10 @@ class AutoDownloadPollingWorker(
     companion object {
         private const val TAG = "AutoDownloadPolling"
 
-        fun setupPeriodicWork(context: Context) {
+        fun setupPeriodicWork(context: Context, enabled: Boolean? = null) {
             val preferences = Injekt.get<DownloadPreferences>()
-            if (!preferences.autoDownloadFromReadingHistory().get()) {
+            val isEnabled = enabled ?: preferences.autoDownloadFromReadingHistory().get()
+            if (!isEnabled) {
                 WorkManager.getInstance(context).cancelUniqueWork(TAG)
                 return
             }

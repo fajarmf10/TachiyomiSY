@@ -279,8 +279,8 @@ object SettingsDownloadScreen : SearchableSettings {
                     preference = downloadPreferences.autoDownloadFromReadingHistory(),
                     title = stringResource(MR.strings.pref_auto_download_reading_history),
                     subtitle = stringResource(MR.strings.pref_auto_download_reading_history_summary),
-                    onValueChanged = {
-                        AutoDownloadPollingWorker.setupPeriodicWork(context)
+                    onValueChanged = { newValue ->
+                        AutoDownloadPollingWorker.setupPeriodicWork(context, newValue)
                         true
                     },
                 ),
