@@ -353,12 +353,13 @@ object SettingsAdvancedScreen : SearchableSettings {
                     preference = flareSolverrUrlPref,
                     title = stringResource(MR.strings.pref_flare_solverr_url),
                     enabled = enableFlareSolverr,
-                    subtitle = stringResource(MR.strings.pref_flare_solverr_url_summary),
+                    subtitle = stringResource(MR.strings.pref_flare_solverr_url_summary) + " (e.g., http://localhost:8191). Note: /v1 will be appended automatically.",
                 ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent),
                     enabled = enableFlareSolverr,
-                    subtitle = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent_summary),
+                    subtitle = stringResource(MR.strings.pref_test_flare_solverr_and_update_user_agent_summary) +
+                        " If you get DNS errors, try disabling DNS-over-HTTPS above.",
                     onClick = {
                         scope.launch {
                             testFlareSolverrAndUpdateUserAgent(flareSolverrUrlPref, userAgentPref, context)
@@ -893,22 +894,74 @@ object SettingsAdvancedScreen : SearchableSettings {
 
         try {
             withContext(Dispatchers.IO) {
-                val flareSolverUrl = flareSolverrUrlPref.get().trim()
+                var flareSolverUrl = flareSolverrUrlPref.get().trim()
+
+                if (flareSolverUrl.isBlank()) {
+                    withContext(Dispatchers.Main) {
+                        context.toast("FlareSolverr URL is not configured")
+                    }
+                    return@withContext
+                }
+
+                // Ensure URL ends with /v1 (FlareSolverr API endpoint)
+                if (!flareSolverUrl.endsWith("/v1")) {
+                    flareSolverUrl = flareSolverUrl.trimEnd('/') + "/v1"
+                    logcat(LogPriority.DEBUG, tag = "FlareSolverr") {
+                        "Appended /v1 to URL: $flareSolverUrl"
+                    }
+                }
+
+                val requestBody = Json.encodeToString(
+                    FlareSolverrInterceptor.CFClearance.FlareSolverRequest(
+                        cmd = "request.get",
+                        url = "http://www.google.com/",
+                        maxTimeout = 60000,
+                    ),
+                ).toRequestBody(jsonMediaType)
+
+                logcat(LogPriority.DEBUG, tag = "FlareSolverr") {
+                    "Testing FlareSolverr at: $flareSolverUrl"
+                }
+
+                val request = POST(
+                    url = flareSolverUrl,
+                    headers = Headers.Builder()
+                        .add("Content-Type", "application/json")
+                        .build(),
+                    body = requestBody,
+                )
+
+                // Create a custom client with extended timeouts for FlareSolverr
+                // FlareSolverr can take up to 60 seconds to solve challenges
+                val customClient = networkHelper.client.newBuilder()
+                    .readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+                    .callTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+
+                val response = customClient.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    val errorBody = response.body?.string() ?: "No error details"
+                    logcat(LogPriority.ERROR, tag = "FlareSolverr") {
+                        "HTTP ${response.code}: $errorBody"
+                    }
+                    withContext(Dispatchers.Main) {
+                        val errorMsg = when (response.code) {
+                            405 -> "HTTP 405: Wrong endpoint? Make sure URL ends with /v1"
+                            else -> "FlareSolverr error: HTTP ${response.code}"
+                        }
+                        context.toast(errorMsg)
+                    }
+                    response.close()
+                    return@withContext
+                }
+
                 val flareSolverResponse = with(json) {
-                    networkHelper.client.newCall(
-                        POST(
-                            url = flareSolverUrl,
-                            body =
-                                Json.encodeToString(
-                                    FlareSolverrInterceptor.CFClearance.FlareSolverRequest(
-                                        "request.get",
-                                        "https://www.google.com/",
-                                        returnOnlyCookies = true,
-                                        maxTimeout = 60000,
-                                    ),
-                                ).toRequestBody(jsonMediaType),
-                        ),
-                    ).awaitSuccess().parseAs<FlareSolverrInterceptor.CFClearance.FlareSolverResponse>()
+                    response.parseAs<FlareSolverrInterceptor.CFClearance.FlareSolverResponse>()
+                }
+
+                logcat(LogPriority.DEBUG, tag = "FlareSolverr") {
+                    "FlareSolverr response: status=${flareSolverResponse.status}, solution.status=${flareSolverResponse.solution.status}"
                 }
 
                 if (flareSolverResponse.solution.status in 200..299) {
@@ -919,17 +972,29 @@ object SettingsAdvancedScreen : SearchableSettings {
                         context.toast(SYMR.strings.flare_solver_user_agent_update_success)
                     }
                 } else {
+                    logcat(LogPriority.ERROR, tag = "FlareSolverr") {
+                        "Solution failed with status: ${flareSolverResponse.solution.status}, message: ${flareSolverResponse.message}"
+                    }
                     withContext(Dispatchers.Main) {
-                        context.toast(SYMR.strings.flare_solver_update_user_agent_failed)
+                        context.toast("FlareSolverr failed: ${flareSolverResponse.message}")
                     }
                 }
             }
         } catch (e: Exception) {
-            logcat(LogPriority.ERROR, tag = "FlareSolverr") {
+            logcat(LogPriority.ERROR, tag = "FlareSolverr", throwable = e) {
                 "Failed to resolve with FlareSolverr: ${e.message}"
             }
             withContext(Dispatchers.Main) {
-                context.toast(SYMR.strings.flare_solver_error)
+                val errorMsg = when {
+                    e is java.net.UnknownHostException -> {
+                        "DNS error: Cannot resolve hostname. Try disabling DNS-over-HTTPS in Advanced settings, or check your network connection."
+                    }
+                    e.message?.contains("timeout", ignoreCase = true) == true -> {
+                        "Timeout: FlareSolverr took too long to respond. Check if the server is running and accessible."
+                    }
+                    else -> "FlareSolverr error: ${e.message ?: "Unknown error"}"
+                }
+                context.toast(errorMsg)
             }
         }
     }

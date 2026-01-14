@@ -67,6 +67,13 @@ class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Int
         private val networkPreferences: NetworkPreferences by injectLazy()
         private val mutex = Mutex()
 
+        private val flareSolverrClient by lazy {
+            network.client.newBuilder()
+                .readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+                .callTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+        }
+
         @Serializable
         data class FlareSolverCookie(
             val name: String,
@@ -125,15 +132,20 @@ class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Int
             originalRequest: Request,
             cookieManager: CookieManager = CookieManager.getInstance(),
         ): Request {
-            val flareSolverrUrl = networkPreferences.flareSolverrUrl().get()
+            var flareSolverrUrl = networkPreferences.flareSolverrUrl().get().trim()
             require(flareSolverrUrl.isNotBlank()) { "FlareSolverr URL is not configured" }
+
+            // Ensure URL ends with /v1 (FlareSolverr API endpoint)
+            if (!flareSolverrUrl.endsWith("/v1")) {
+                flareSolverrUrl = flareSolverrUrl.trimEnd('/') + "/v1"
+            }
 
             logcat(LogPriority.DEBUG) { "Requesting challenge solution for ${originalRequest.url}" }
 
             val flareSolverResponse =
                 with(json) {
                     mutex.withLock {
-                        network.client.newCall(
+                        flareSolverrClient.newCall(
                             POST(
                                 url = flareSolverrUrl,
                                 body =
@@ -146,7 +158,7 @@ class FlareSolverrInterceptor(private val preferences: NetworkPreferences) : Int
                                                     FlareSolverCookie(it.name, it.value)
                                                 },
                                             returnOnlyCookies = true,
-                                            maxTimeout = 30000,
+                                            maxTimeout = 60000,
                                         ),
                                     ).toRequestBody(jsonMediaType),
                             ),
