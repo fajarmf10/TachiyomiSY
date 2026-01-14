@@ -297,13 +297,14 @@ object SettingsDownloadScreen : SearchableSettings {
         )
     }
 
-    @Composable
+    `@Composable`
     private fun getStorageCleanupGroup(
         downloadPreferences: DownloadPreferences,
     ): Preference.PreferenceGroup {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
         val cleanupOnStartup by downloadPreferences.cleanupOrphanedFoldersOnStartup().collectAsState()
+        var isCleaning by rememberSaveable { mutableStateOf(false) }
 
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_category_storage_cleanup),
@@ -320,9 +321,12 @@ object SettingsDownloadScreen : SearchableSettings {
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.pref_cleanup_now),
                     subtitle = stringResource(MR.strings.pref_cleanup_now_summary),
+                    enabled = !isCleaning,
                     onClick = {
                         context.toast(MR.strings.cleanup_temp_folders_started)
                         scope.launch {
+                            if (isCleaning) return@launch
+                            isCleaning = true
                             val cleaned = withIOContext {
                                 TempFolderCleanupWorker.cleanupOrphanedTempFolders(maxAgeMillis = 0)
                             }
@@ -336,6 +340,7 @@ object SettingsDownloadScreen : SearchableSettings {
                                 )
                             }
                             context.toast(message, Toast.LENGTH_LONG)
+                            isCleaning = false
                         }
                     },
                 ),
