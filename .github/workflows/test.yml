@@ -31,23 +31,23 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Run unit tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew test --stacktrace --max-workers=1 --no-daemon
         env:
-          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
           KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Generate coverage report
         if: success() || failure()
-        run: ./gradlew jacocoTestReport
+        run: ./gradlew jacocoTestReport --max-workers=1 --no-daemon
         env:
-          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
           KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Build app (for PRs to master/develop)
         if: github.event_name == 'pull_request' && (github.base_ref == 'master' || github.base_ref == 'develop')
-        run: ./gradlew spotlessCheck assembleDevDebug
+        run: ./gradlew spotlessCheck assembleDevDebug --max-workers=1 --no-daemon
         env:
-          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
           KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Upload APK (for PRs to master/develop)

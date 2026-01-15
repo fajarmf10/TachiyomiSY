@@ -47,21 +47,21 @@ jobs:
       # SY <--
 
       - name: Check code format
-        run: ./gradlew spotlessCheck
+        run: ./gradlew spotlessCheck --max-workers=1 --no-daemon
         env:
-          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
           KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Build app
-        run: ./gradlew assembleStandardRelease
+        run: ./gradlew assembleStandardRelease --max-workers=1 --no-daemon
         env:
-          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
           KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Run unit tests
-        run: ./gradlew testReleaseUnitTest testStandardReleaseUnitTest
+        run: ./gradlew testReleaseUnitTest testStandardReleaseUnitTest --max-workers=1 --no-daemon
         env:
-          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
           KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Sign APK
