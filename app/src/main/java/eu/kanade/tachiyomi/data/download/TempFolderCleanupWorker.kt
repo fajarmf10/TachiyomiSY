@@ -10,6 +10,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.hippo.unifile.UniFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import logcat.logcat
 import tachiyomi.domain.download.service.DownloadPreferences
@@ -51,11 +53,11 @@ class TempFolderCleanupWorker(
          */
         suspend fun cleanupOrphanedTempFolders(
             maxAgeMillis: Long = TimeUnit.HOURS.toMillis(1),
-        ): Int {
+        ): Int = withContext(Dispatchers.IO) {
             val storageManager: StorageManager = Injekt.get()
-            val downloadsDir = storageManager.getDownloadsDirectory() ?: return 0
+            val downloadsDir = storageManager.getDownloadsDirectory() ?: return@withContext 0
             val cutoff = System.currentTimeMillis() - maxAgeMillis
-            return cleanupInDirectory(downloadsDir, cutoff)
+            return@withContext cleanupInDirectory(downloadsDir, cutoff)
         }
 
         /**
@@ -145,15 +147,27 @@ class TempFolderCleanupWorker(
                 if (child.isDirectory) {
                     if (!deleteDirectoryRecursively(child)) {
                         allDeleted = false
+                        logcat(LogPriority.WARN, tag = TAG) {
+                            "Failed to recursively delete directory: ${child.name}"
+                        }
                     }
                 } else {
                     if (!child.delete()) {
                         allDeleted = false
+                        logcat(LogPriority.WARN, tag = TAG) {
+                            "Failed to delete file: ${child.name}"
+                        }
                     }
                 }
             }
             // * Now the directory should be empty, so we can delete it
-            return allDeleted && dir.delete()
+            val dirDeleted = dir.delete()
+            if (!dirDeleted && allDeleted) {
+                logcat(LogPriority.WARN, tag = TAG) {
+                    "Failed to delete directory (contents were deleted): ${dir.name}"
+                }
+            }
+            return allDeleted && dirDeleted
         }
     }
 }
