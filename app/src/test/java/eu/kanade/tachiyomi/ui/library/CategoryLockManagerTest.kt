@@ -8,9 +8,10 @@ import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotContain
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.unmockkAll
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -20,19 +21,31 @@ import org.koin.dsl.module
 
 class CategoryLockManagerTest {
 
-    private lateinit var securityPreferences: SecurityPreferences
+    companion object {
+        // Reuse the same mock instance across all tests to work with injectLazy() caching
+        private val securityPreferences: SecurityPreferences = mockk(relaxed = true)
+
+        @JvmStatic
+        @AfterAll
+        fun tearDownClass() {
+            // Stop Koin after all tests complete
+            stopKoin()
+        }
+    }
 
     @BeforeEach
     fun setup() {
-        securityPreferences = mockk(relaxed = true)
-
-        // Initialize Koin for dependency injection
-        startKoin {
-            modules(
-                module {
-                    single { securityPreferences }
-                },
-            )
+        // Initialize Koin only once with the same mock instance
+        try {
+            startKoin {
+                modules(
+                    module {
+                        single { securityPreferences }
+                    },
+                )
+            }
+        } catch (e: Exception) {
+            // Koin already started, which is fine
         }
 
         // Reset the manager state
@@ -44,9 +57,10 @@ class CategoryLockManagerTest {
 
     @AfterEach
     fun teardown() {
-        stopKoin()
-        unmockkAll()
+        // Reset the manager state for next test
         CategoryLockManager.lockAll()
+        // Clear all stubbings on the shared mock (but keep the mock itself)
+        clearMocks(securityPreferences, answers = false)
     }
 
     @Test
