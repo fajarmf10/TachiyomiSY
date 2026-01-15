@@ -13,9 +13,9 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -27,17 +27,10 @@ class CategoryLockManagerTest {
         private val securityPreferences: SecurityPreferences = mockk(relaxed = true)
 
         @JvmStatic
-        @AfterAll
-        fun tearDownClass() {
-            // Stop Koin after all tests complete
+        @BeforeAll
+        fun setUpClass() {
+            // Stop any existing Koin instance and start fresh with our module
             stopKoin()
-        }
-    }
-
-    @BeforeEach
-    fun setup() {
-        // Initialize Koin only if not already started
-        if (GlobalContext.getOrNull() == null) {
             startKoin {
                 modules(
                     module {
@@ -47,6 +40,16 @@ class CategoryLockManagerTest {
             }
         }
 
+        @JvmStatic
+        @AfterAll
+        fun tearDownClass() {
+            // Stop Koin after all tests complete
+            stopKoin()
+        }
+    }
+
+    @BeforeEach
+    fun setup() {
         // Reset the manager state
         CategoryLockManager.lockAll()
 
