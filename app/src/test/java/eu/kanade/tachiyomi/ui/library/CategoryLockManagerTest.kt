@@ -61,7 +61,7 @@ class CategoryLockManagerTest {
     fun teardown() {
         // Reset the manager state for next test
         CategoryLockManager.lockAll()
-        // Clear all stubbings on the shared mock (but keep the mock itself)
+        // Clear recorded calls but keep stubbings (setup() will re-stub as needed)
         clearMocks(securityPreferences, answers = false)
     }
 
