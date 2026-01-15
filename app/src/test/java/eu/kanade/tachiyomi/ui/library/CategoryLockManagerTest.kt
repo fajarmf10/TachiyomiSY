@@ -15,6 +15,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -35,8 +36,8 @@ class CategoryLockManagerTest {
 
     @BeforeEach
     fun setup() {
-        // Initialize Koin only once with the same mock instance
-        try {
+        // Initialize Koin only if not already started
+        if (GlobalContext.getOrNull() == null) {
             startKoin {
                 modules(
                     module {
@@ -44,8 +45,6 @@ class CategoryLockManagerTest {
                     },
                 )
             }
-        } catch (e: Exception) {
-            // Koin already started, which is fine
         }
 
         // Reset the manager state
