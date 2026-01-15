@@ -16,6 +16,7 @@ tasks.withType<Test> {
 
 tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn("testDebugUnitTest")
+    mustRunAfter("processDebugManifest", "compileDebugLibraryResources")
 
     reports {
         xml.required.set(true)
