@@ -32,14 +32,23 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew test --stacktrace
+        env:
+          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Generate coverage report
         if: success() || failure()
         run: ./gradlew jacocoTestReport
+        env:
+          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Build app (for PRs to master/develop)
         if: github.event_name == 'pull_request' && (github.base_ref == 'master' || github.base_ref == 'develop')
         run: ./gradlew spotlessCheck assembleDevDebug
+        env:
+          GRADLE_OPTS: -Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=512m
+          KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
       - name: Upload APK (for PRs to master/develop)
         if: github.event_name == 'pull_request' && (github.base_ref == 'master' || github.base_ref == 'develop')
