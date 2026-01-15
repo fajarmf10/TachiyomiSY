@@ -10,15 +10,13 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotContain
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.InjektModule
-import uy.kohesive.injekt.api.InjektRegistrar
-import uy.kohesive.injekt.api.addSingletonFactory
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 
 class CategoryLockManagerTest {
 
@@ -28,12 +26,14 @@ class CategoryLockManagerTest {
     fun setup() {
         securityPreferences = mockk(relaxed = true)
 
-        // Mock Injekt
-        mockkObject(Injekt)
-        val module = InjektModule {
-            addSingletonFactory { securityPreferences }
+        // Initialize Koin for dependency injection
+        startKoin {
+            modules(
+                module {
+                    single { securityPreferences }
+                },
+            )
         }
-        InjektRegistrar.registerInjectModule(module)
 
         // Reset the manager state
         CategoryLockManager.lockAll()
@@ -44,6 +44,7 @@ class CategoryLockManagerTest {
 
     @AfterEach
     fun teardown() {
+        stopKoin()
         unmockkAll()
         CategoryLockManager.lockAll()
     }
