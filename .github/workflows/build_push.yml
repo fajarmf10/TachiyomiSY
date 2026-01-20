@@ -17,6 +17,25 @@ jobs:
         steps:
             - name: Checkout sources
               uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+
+            - name: Extract version name
+              id: version
+              run: |
+                  VERSION=$(grep 'versionName = ' app/build.gradle.kts | awk -F'"' '{print $2}')
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+                  echo "Extracted version: $VERSION"
+
+            - name: Check if tag exists
+              id: tag_check
+              run: |
+                  if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+                    echo "::error::Tag ${{ steps.version.outputs.tag }} already exists!"
+                    echo "::error::Please increment the version in app/build.gradle.kts"
+                    exit 1
+                  fi
 
             - name: Setup Android SDK
               run: |
@@ -73,23 +92,48 @@ jobs:
                   mv app/build/outputs/apk/standard/release/app-standard-x86-release-unsigned-signed.apk TachiyomiSY-x86.apk
                   mv app/build/outputs/apk/standard/release/app-standard-x86_64-release-unsigned-signed.apk TachiyomiSY-x86_64.apk
 
+            - name: Get previous tag
+              id: prev_tag
+              run: |
+                  PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+                  if [ -z "$PREV_TAG" ]; then
+                    PREV_TAG="1.12.0"
+                  fi
+                  echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+                  echo "Using previous tag: $PREV_TAG"
+
+            - name: Build changelog
+              id: changelog
+              uses: mikepenz/release-changelog-builder-action@v5
+              with:
+                  configuration: ".github/changelog-config.json"
+                  fromTag: ${{ steps.prev_tag.outputs.tag }}
+                  toTag: ${{ github.sha }}
+                  commitMode: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Create release
               uses: softprops/action-gh-release@v2
               with:
-                  tag_name: ${{ github.run_number }}
-                  name: TachiyomiSY
+                  tag_name: ${{ steps.version.outputs.tag }}
+                  name: TachiyomiSY ${{ steps.version.outputs.tag }}
                   body: |
-                      <!-->
+                      ## Installation
                       > [!TIP]
-                      >
-                      > ### If you are unsure which version to download then go with `TachiyomiSY.apk`
+                      > If unsure which version to download, use `TachiyomiSY.apk`
+
+                      ## What's Changed
+                      ${{ steps.changelog.outputs.changelog }}
+
+                      **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.prev_tag.outputs.tag }}...${{ steps.version.outputs.tag }}
                   files: |
                       TachiyomiSY.apk
                       TachiyomiSY-arm64-v8a.apk
                       TachiyomiSY-armeabi-v7a.apk
                       TachiyomiSY-x86.apk
                       TachiyomiSY-x86_64.apk
-                  draft: true
+                  draft: false
                   prerelease: false
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

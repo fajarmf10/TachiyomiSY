@@ -1,0 +1,48 @@
+{
+  "categories": [
+    {
+      "title": "🎉 Features",
+      "labels": ["feature", "enhancement"],
+      "exclude_labels": ["skip-changelog"],
+      "commit_patterns": ["^feat"]
+    },
+    {
+      "title": "🐛 Bug Fixes",
+      "labels": ["bug", "fix", "bugfix"],
+      "exclude_labels": ["skip-changelog"],
+      "commit_patterns": ["^fix"]
+    },
+    {
+      "title": "🔧 Maintenance",
+      "labels": ["chore", "ci", "build", "dependencies"],
+      "exclude_labels": ["skip-changelog"],
+      "commit_patterns": ["^(chore|ci|build|refactor)"]
+    },
+    {
+      "title": "🌍 Translations",
+      "labels": ["translation", "i18n", "l10n"],
+      "exclude_labels": ["skip-changelog"],
+      "commit_patterns": ["(i18n|translation|translations|localiz)"]
+    },
+    {
+      "title": "✨ Other Changes",
+      "labels": [],
+      "exclude_labels": ["skip-changelog"]
+    }
+  ],
+  "ignore_labels": [
+    "duplicate",
+    "invalid",
+    "wontfix",
+    "skip-changelog",
+    "internal"
+  ],
+  "sort": "commits",
+  "template": "${{CHANGELOG}}",
+  "pr_template": "- ${{TITLE}} ([#${{NUMBER}}](${{URL}}))",
+  "commit_template": "- ${{COMMIT_MESSAGE}}",
+  "base_branches": [
+    "master",
+    "main"
+  ]
+}
