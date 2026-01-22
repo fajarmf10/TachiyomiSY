@@ -755,7 +755,7 @@ git push origin release
 
 ```bash
 # Extract current version from build.gradle.kts
-cd /Users/fajar.firdaus/Documents/Android\ Studio/TachiyomiSY
+cd /path/to/TachiyomiSY
 grep 'versionName = ' app/build.gradle.kts | awk -F'"' '{print $2}'
 # Expected output: 1.12.0
 ```
