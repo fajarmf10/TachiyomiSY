@@ -51,7 +51,7 @@ footer
 - `perf:` - Performance improvements
 
 **Example commits**:
-```
+```text
 feat: add category PIN locking
 fix: crash when loading manga with special characters
 ci: optimize gradle build caching
@@ -115,7 +115,7 @@ graph LR
 
 #### Quick Commands: Feature Development
 
-**Step 1: Create and checkout feature branch**
+##### Step 1: Create and checkout feature branch
 ```bash
 # Create from develop (always pull latest first)
 git checkout develop
@@ -129,7 +129,8 @@ git checkout -b fix/bug-description
 git checkout -b chore/update-something
 ```
 
-**Step 2: Make changes and commit**
+##### Step 2: Make changes and commit
+
 ```bash
 # Make your changes to files...
 
@@ -151,7 +152,8 @@ git commit -m "feat: implement feature
 - Added tests"
 ```
 
-**Step 3: Push and create PR**
+##### Step 3: Push and create PR
+
 ```bash
 # Push branch to remote
 git push -u origin feature/my-feature-name
@@ -163,7 +165,8 @@ git push -u origin feature/my-feature-name
 gh pr create --title "Add my feature" --body "Description of changes" --base develop
 ```
 
-**Step 4: Address CI failures**
+##### Step 4: Address CI failures
+
 ```bash
 # If build_check.yml or test.yml fails, fix locally
 git add .
@@ -173,7 +176,8 @@ git push
 # CI will automatically re-run on new commit
 ```
 
-**Step 5: Merge after approval**
+##### Step 5: Merge after approval
+
 ```bash
 # After code review approval, merge to develop
 # Can be done via GitHub UI or CLI:
@@ -666,7 +670,7 @@ https://github.com/tachiyomisx/TachiyomiSY/compare/v1.12.0...v1.12.1
 **Tag Validation**:
 - Before building, workflow checks if tag already exists
 - If tag exists: Build fails with error message
-  ```
+  ```text
   ::error::Tag v1.12.1 already exists!
   ::error::Please increment the version in app/build.gradle.kts
   ```
@@ -775,7 +779,7 @@ grep 'versionName = ' app/build.gradle.kts | awk -F'"' '{print $2}'
 ### Release Build Failed: "Tag already exists"
 
 **Error**:
-```
+```text
 ::error::Tag v1.12.1 already exists!
 ::error::Please increment the version in app/build.gradle.kts
 ```
@@ -819,7 +823,7 @@ grep 'versionName = ' app/build.gradle.kts | awk -F'"' '{print $2}'
 ### Gradle Build Memory Issues
 
 **Error**:
-```
+```text
 java.lang.OutOfMemoryError: Java heap space
 ```
 
