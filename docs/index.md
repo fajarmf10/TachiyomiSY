@@ -32,7 +32,7 @@ Use descriptive branch naming conventions:
 
 While not strictly enforced, commits follow [Conventional Commits](https://www.conventionalcommits.org/) format:
 
-```
+```text
 type(scope): subject
 
 body
@@ -177,6 +177,11 @@ git push
 ```bash
 # After code review approval, merge to develop
 # Can be done via GitHub UI or CLI:
+
+# Squash merge (recommended for develop - keeps history clean):
+gh pr merge <PR_NUMBER> --squash --base develop
+
+# Or merge commit (alternative):
 gh pr merge <PR_NUMBER> --merge --base develop
 ```
 
@@ -565,8 +570,11 @@ versionName = "1.12.1"  // Update version (semantic versioning)
 #### Step 2: Commit and Push to Release Branch
 
 ```bash
-git checkout master
-git pull origin master
+# Checkout release branch (not master)
+git checkout release
+git pull origin release
+
+# Update version
 git add app/build.gradle.kts
 git commit -m "bump: version to 1.12.1"
 git push origin release
@@ -600,7 +608,7 @@ git push origin release
 
 #### Step 4: Verify Release (Optional)
 
-Visit: https://github.com/tachiyomisx/TachiyomiSY/releases
+Visit: <https://github.com/tachiyomisx/TachiyomiSY/releases>
 
 You should see:
 - Latest release: `v1.12.1`
@@ -705,9 +713,9 @@ https://github.com/tachiyomisx/TachiyomiSY/compare/v1.12.0...v1.12.1
 #### Triggering a Release
 
 ```bash
-# Ensure you're on master with latest changes
-git checkout master
-git pull origin master
+# Checkout release branch
+git checkout release
+git pull origin release
 
 # Update version in app/build.gradle.kts
 # - Increment versionCode by 1
@@ -756,7 +764,7 @@ grep 'versionName = ' app/build.gradle.kts | awk -F'"' '{print $2}'
 - Release artifacts: Permanently at GitHub Releases
 
 **APK downloads**:
-- https://github.com/tachiyomisx/TachiyomiSY/releases
+- <https://github.com/tachiyomisx/TachiyomiSY/releases>
 - Download `TachiyomiSY.apk` for most devices
 - Download architecture-specific for optimized performance
 

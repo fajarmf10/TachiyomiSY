@@ -39,7 +39,7 @@ jobs:
 
             - name: Setup Android SDK
               run: |
-                  ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "build-tools;29.0.3"
+                  ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "build-tools;29.0.3" "build-tools;35.0.1"
 
             - name: Set up JDK
               uses: actions/setup-java@v5
@@ -97,7 +97,7 @@ jobs:
               run: |
                   PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
                   if [ -z "$PREV_TAG" ]; then
-                    PREV_TAG="1.12.0"
+                    PREV_TAG="v1.12.0"
                   fi
                   echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
                   echo "Using previous tag: $PREV_TAG"
