@@ -1,95 +1,139 @@
 name: Release Builder
+
 on:
-  push:
-   branches:
-    - 'release'
+    push:
+        branches:
+            - 'release'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build release app
-    runs-on: ubuntu-latest
+    build:
+        name: Build release app
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@v6
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
 
-      - name: Setup Android SDK
-        run: |
-          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "build-tools;29.0.3"
+            - name: Extract version name
+              id: version
+              run: |
+                  VERSION=$(grep 'versionName = ' app/build.gradle.kts | awk -F'"' '{print $2}')
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+                  echo "Extracted version: $VERSION"
 
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          java-version: 17
-          distribution: temurin
+            - name: Check if tag exists
+              id: tag_check
+              run: |
+                  if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+                    echo "::error::Tag ${{ steps.version.outputs.tag }} already exists!"
+                    echo "::error::Please increment the version in app/build.gradle.kts"
+                    exit 1
+                  fi
 
-      - name: Set up gradle
-        uses: gradle/actions/setup-gradle@v5
+            - name: Setup Android SDK
+              run: |
+                  ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "build-tools;29.0.3" "build-tools;35.0.1"
 
-      # SY -->
-      - name: Write google-services.json
-        uses: DamianReeves/write-file-action@v1.3
-        with:
-          path: app/google-services.json
-          contents: ${{ secrets.GOOGLE_SERVICES_TEXT }}
-          write-mode: overwrite
+            - name: Set up JDK
+              uses: actions/setup-java@v5
+              with:
+                  java-version: 17
+                  distribution: temurin
+                  cache: gradle
 
-      - name: Write client_secrets.json
-        uses: DamianReeves/write-file-action@v1.3
-        with:
-          path: app/src/main/assets/client_secrets.json
-          contents: ${{ secrets.CLIENT_SECRETS_TEXT }}
-          write-mode: overwrite
-      # SY <--
+            - name: Grant execute permission for gradlew
+              run: chmod +x gradlew
 
-      - name: Build and test app
-        run: ./gradlew spotlessCheck testReleaseUnitTest testStandardReleaseUnitTest assembleStandardRelease --max-workers=1 --no-daemon
-        env:
-          GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
-          KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
+            - name: Write google-services.json
+              uses: DamianReeves/write-file-action@v1.3
+              with:
+                  path: app/google-services.json
+                  contents: ${{ secrets.GOOGLE_SERVICES_TEXT }}
+                  write-mode: overwrite
 
-      - name: Sign APK
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/standard/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: '35.0.1'
+            - name: Write client_secrets.json
+              uses: DamianReeves/write-file-action@v1.3
+              with:
+                  path: app/src/main/assets/client_secrets.json
+                  contents: ${{ secrets.CLIENT_SECRETS_TEXT }}
+                  write-mode: overwrite
 
-      - name: Clean up build artifacts
-        run: |
-          set -e
+            - name: Build and test app
+              run: ./gradlew spotlessCheck testReleaseUnitTest testStandardReleaseUnitTest assembleStandardRelease --max-workers=1 --no-daemon
+              env:
+                  GRADLE_OPTS: -Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -XX:+UseStringDeduplication
+                  KOTLIN_DAEMON_JVMARGS: -Xmx2g -XX:MaxMetaspaceSize=512m
 
-          mv app/build/outputs/apk/standard/release/app-standard-universal-release-unsigned-signed.apk TachiyomiSY.apk
-          mv app/build/outputs/apk/standard/release/app-standard-arm64-v8a-release-unsigned-signed.apk TachiyomiSY-arm64-v8a.apk
-          mv app/build/outputs/apk/standard/release/app-standard-armeabi-v7a-release-unsigned-signed.apk TachiyomiSY-armeabi-v7a.apk
-          mv app/build/outputs/apk/standard/release/app-standard-x86-release-unsigned-signed.apk TachiyomiSY-x86.apk
-          mv app/build/outputs/apk/standard/release/app-standard-x86_64-release-unsigned-signed.apk TachiyomiSY-x86_64.apk
+            - name: Sign APK
+              uses: r0adkll/sign-android-release@v1
+              with:
+                  releaseDirectory: app/build/outputs/apk/standard/release
+                  signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+                  alias: ${{ secrets.ALIAS }}
+                  keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+                  keyPassword: ${{ secrets.KEY_PASSWORD }}
+              env:
+                  BUILD_TOOLS_VERSION: '35.0.1'
 
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.run_number }}
-          name: TachiyomiSY
-          body: |
-            <!-->
-            > [!TIP]
-            >
-            > ### If you are unsure which version to download then go with `TachiyomiSY.apk`
-          files: |
-            TachiyomiSY.apk
-            TachiyomiSY-arm64-v8a.apk
-            TachiyomiSY-armeabi-v7a.apk
-            TachiyomiSY-x86.apk
-            TachiyomiSY-x86_64.apk
-          draft: true
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Clean up build artifacts
+              run: |
+                  set -e
+
+                  mv app/build/outputs/apk/standard/release/app-standard-universal-release-unsigned-signed.apk TachiyomiSY.apk
+                  mv app/build/outputs/apk/standard/release/app-standard-arm64-v8a-release-unsigned-signed.apk TachiyomiSY-arm64-v8a.apk
+                  mv app/build/outputs/apk/standard/release/app-standard-armeabi-v7a-release-unsigned-signed.apk TachiyomiSY-armeabi-v7a.apk
+                  mv app/build/outputs/apk/standard/release/app-standard-x86-release-unsigned-signed.apk TachiyomiSY-x86.apk
+                  mv app/build/outputs/apk/standard/release/app-standard-x86_64-release-unsigned-signed.apk TachiyomiSY-x86_64.apk
+
+            - name: Get previous tag
+              id: prev_tag
+              run: |
+                  PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+                  if [ -z "$PREV_TAG" ]; then
+                    PREV_TAG="v1.12.0"
+                  fi
+                  echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+                  echo "Using previous tag: $PREV_TAG"
+
+            - name: Build changelog
+              id: changelog
+              uses: mikepenz/release-changelog-builder-action@v5
+              with:
+                  configuration: ".github/changelog-config.json"
+                  fromTag: ${{ steps.prev_tag.outputs.tag }}
+                  toTag: ${{ github.sha }}
+                  commitMode: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Create release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ steps.version.outputs.tag }}
+                  name: TachiyomiSY ${{ steps.version.outputs.tag }}
+                  body: |
+                      ## Installation
+                      > [!TIP]
+                      > If unsure which version to download, use `TachiyomiSY.apk`
+
+                      ## What's Changed
+                      ${{ steps.changelog.outputs.changelog }}
+
+                      **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.prev_tag.outputs.tag }}...${{ steps.version.outputs.tag }}
+                  files: |
+                      TachiyomiSY.apk
+                      TachiyomiSY-arm64-v8a.apk
+                      TachiyomiSY-armeabi-v7a.apk
+                      TachiyomiSY-x86.apk
+                      TachiyomiSY-x86_64.apk
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
