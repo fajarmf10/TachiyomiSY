@@ -364,7 +364,7 @@ git tag | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sort -V
 **View last released version**:
 ```bash
 git tag --sort=-version:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' | head -1
-# Output: 1.12.0 (latest semantic version)
+# Output: v1.12.0 (latest semantic version)
 ```
 
 **Reset local develop to remote**:
@@ -700,7 +700,7 @@ https://github.com/tachiyomisx/TachiyomiSY/compare/v1.12.0...v1.12.1
 ⚠️ **If build fails**:
 1. Check error message for specific issue
 2. Fix the problem locally
-3. Increment version again
+3. Increment version
 4. Push to release branch again
 
 💡 **For testing before full release**:
